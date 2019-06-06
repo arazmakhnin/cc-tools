@@ -1,0 +1,79 @@
+{
+    "commonSettings": {
+        "jiraUserName": "",
+        "jiraPassword": "",
+
+        // GitHub personal access token (https://github.com/settings/tokens)
+        "githubToken": "",
+
+        // Path where all work project are placed
+        "projectsPath": "c:\\projects",
+
+        // Settings for every specific project. If project isn't listed here, then default settings will be applied
+        "repos": [
+            {
+                "name": "km-all-projects",
+                "pca": "gkibria"
+            },
+            {
+                "name": "avolin-coretrac",
+                "pca": "aparfenchuck",
+                "branchPrefix": "cleanup"
+            },
+            {
+                // Repo name
+                "name": "gfi-mail-archiver",
+
+                // PCA jira name for this repo. No default value for this fields. 
+                // If not defined, then "move to review" will not work
+                "pca": "",
+
+                // Prefix for branches in this repo. Default value is "feature"
+                "branchPrefix": "cleanup",
+
+                // Main working branch for this repo. Default value is "develop"
+                "mainBranch": "develop"
+            }
+        ]        
+    },
+    "fpCommand": {
+
+    },
+    "prCommand": {
+        // Aliases for common messages for PR description. 
+        // When running "pr" command you can just enter "d" to automatically fill "Solves a memory leak by adding Dispose call."
+        "commentAliases": {
+            "u": "Solves a memory leak by wrapping instance with an using statement.",
+            "d": "Solves a memory leak by adding Dispose call.",
+            "dcc": "Solves a code duplication by cleaning usings.",
+            "lm": "Solves a long method by extracting new functions."  
+        },
+
+        // Same for "Note for reviewer" section
+        "notesAliases":  {
+            "ecn": "Only ECN CI should be considered",
+            "uas": "Only UAS CI should be considered",
+            "uad": "Only UAD CI should be considered"
+        },
+
+        // Assign PR to you after creating
+        "assignPr": false
+    },
+    "newCommand": {
+        // Fields to be copied from source jira ticket
+        "fieldsToCopy": [
+            "scm_url",
+            "scm_branch",
+            "Programming Technology",
+            "Company",
+            "Software Product Name"
+        ]
+    },
+    "crnCommand": {
+
+    },
+    "reviewCommand": {
+        // Assign PR to you after moving to review
+        "assignPr": true
+    }
+}

@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.452
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CcWorks", "CcWorks\CcWorks.csproj", "{5BE48EE6-B30B-4211-A175-E0C4260A3FF3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Atlassian.Jira", "..\atlassian.net-sdk\Atlassian.Jira\Atlassian.Jira.csproj", "{36C2A6E1-48FA-479A-901B-D38B7251E5B9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5BE48EE6-B30B-4211-A175-E0C4260A3FF3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BE48EE6-B30B-4211-A175-E0C4260A3FF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BE48EE6-B30B-4211-A175-E0C4260A3FF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BE48EE6-B30B-4211-A175-E0C4260A3FF3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36C2A6E1-48FA-479A-901B-D38B7251E5B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36C2A6E1-48FA-479A-901B-D38B7251E5B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36C2A6E1-48FA-479A-901B-D38B7251E5B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36C2A6E1-48FA-479A-901B-D38B7251E5B9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {62077CED-1577-49BC-9D92-4EE92E522151}
+	EndGlobalSection
+EndGlobal
