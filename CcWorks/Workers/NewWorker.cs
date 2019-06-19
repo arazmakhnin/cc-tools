@@ -22,6 +22,12 @@ namespace CcWorks.Workers
 
             var shortTicketType = parameters.Get("Enter ticket type: ");
             var longTicketType = GetTicketType(shortTicketType);
+            string brpQualifier = string.Empty;
+            if (longTicketType == "BRP Issues")
+            {
+                brpQualifier = parameters.Get("Please specify BRP type [m = Magic Strings; f = Formatting]: ");
+                brpQualifier = " - " + GetBrpQualifier(brpQualifier);
+            }
 
             var fileParts = ReadFileParts(longTicketType);
 
@@ -45,7 +51,7 @@ namespace CcWorks.Workers
 
             Console.Write("Create new issue... ");
             var newIssue = jira.CreateIssue("CC");
-            newIssue.Summary = longTicketType + " :: " + GetFileName(fileParts.First().FileName, commonSettings.ProjectsPath, repoName);
+            newIssue.Summary = longTicketType + brpQualifier + " :: " + GetFileName(fileParts.First().FileName, commonSettings.ProjectsPath, repoName);
             newIssue.Type = longTicketType;
             newIssue.Assignee = commonSettings.JiraUserName;
             newIssue.Priority = issue.Priority;
@@ -212,9 +218,25 @@ h4. Code
                 case "ML":
                     return "Symbolic Execution - Memory Leaks";
 
+                case "BRP":
+                    return "BRP Issues";
+
                 default:
                     throw new CcException(
                         $"Unknown ticket type: {ticketType}. Only LC, LM, ML, Dead code (DC, dead) and Code duplication (CD, dup) are supported for now");
+            }
+        }
+
+        private static string GetBrpQualifier(string shortQualifier)
+        {
+            switch (shortQualifier.ToUpperInvariant())
+            {
+                case "F":
+                    return "Formatting";
+                case "M":
+                    return "Magic Strings";
+                default:
+                    return shortQualifier;
             }
         }
 

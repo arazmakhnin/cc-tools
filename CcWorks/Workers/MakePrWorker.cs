@@ -173,6 +173,12 @@ namespace CcWorks.Workers
                 coverageWarning = false;
             }
 
+            if (issue.Type == "BRP Issues")
+            {
+                testCoverage = testCoverage.Replace("%testCoverageText%", "Tests are not required for `BRP Tickets`.");
+                coverageWarning = false;
+            }
+
             if (issue.Type == "Symbolic Execution - Memory Leaks")
             {
                 testCoverage = testCoverage.Replace("%testCoverageText%", "Tests are not required for memory leaks.");
@@ -295,6 +301,9 @@ namespace CcWorks.Workers
 
                 case "symbolic execution - memory leaks":
                     return "memory leak";
+
+                case "brp issues":
+                    return "brp";
 
                 default:
                     throw new InvalidOperationException($"Unknown issue type: {issue.Type}");
