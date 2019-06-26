@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Text.RegularExpressions;
+using Atlassian.Jira;
 using CcWorks.Exceptions;
 
 namespace CcWorks.Helpers
@@ -26,6 +28,14 @@ namespace CcWorks.Helpers
             {
                 throw new CcException("Unknown jira ticket");
             }
+        }
+    }
+
+    public static class JiraIssueHelper
+    {
+        public static string GetScmUrl(this Issue issue)
+        {
+            return issue.CustomFields["scm_url"]?.Values?.FirstOrDefault();
         }
     }
 }
