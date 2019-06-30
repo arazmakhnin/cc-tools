@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Atlassian.Jira;
 using CcWorks.Exceptions;
+using CcWorks.Helpers;
 using Newtonsoft.Json;
 using JiraHelper = CcWorks.Helpers.JiraHelper;
 

@@ -74,6 +74,10 @@ namespace CcWorks
                             await RebaseWorker.DoWork(settings.RebaseCommand, settings.CommonSettings, commandParameters, jira);
                             break;
 
+                        case "solve":
+                            await SolveWorker.DoWork(settings.CommonSettings, commandParameters, jira);
+                            break;
+
                         case "exit":
                             return;
 
