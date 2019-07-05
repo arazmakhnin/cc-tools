@@ -69,8 +69,6 @@ namespace CcWorks.Workers
 
             Console.Write("Moving to review... ");
             SetCustomField(issue, "Reviewer", repoSettings.Pca);
-            //SetCustomField(issue, "Number of Unit Tests Added", "0");
-            //SetCustomField(issue, "Coverage percentage(%)", coverage);
             SetCustomField(issue, "Code Review Ticket URL", prUrl);
             await issue.WorkflowTransitionAsync("Submit for Review", new WorkflowTransitionUpdates()
             {
