@@ -104,8 +104,17 @@ namespace CcWorks.Workers
 
                 lastFileName = fileName;
 
-                Console.Write("Start line [or \"whole\"]: ");
-                var startLineStr = Console.ReadLine() ?? string.Empty;
+                string startLineStr;
+                if (longTicketType == "BRP Issues")
+                {
+                    startLineStr = "whole";
+                }
+                else
+                {
+                    Console.Write("Start line [or \"whole\"]: ");
+                    startLineStr = Console.ReadLine() ?? string.Empty;
+                }
+
                 if (startLineStr.Trim().Equals("whole"))
                 {
                     list.Add(new FilePart(fileName, true, 0, 0));
