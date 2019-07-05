@@ -213,7 +213,7 @@ namespace CcWorks.Tests.Solvers
 {
     private const string C1 = ""some"";
     private const string ExistingConst = ""double"";
-    
+
     public void SampleMethod()
     {
         var s = ExistingConst;
@@ -221,6 +221,102 @@ namespace CcWorks.Tests.Solvers
         var b = C1;
     }
 }");
+        }
+
+        [Test]
+        public async Task WithMultipleClasses_ShouldReplaceInEveryClass()
+        {
+            // arrange
+            var text = @"namespace Some.Name.Space
+{
+    public class Sample1
+    {
+        public void SampleMethod1()
+        {
+            var a = ""class1"";
+            var b = ""class1"";
+        }
+    }
+
+    public class Sample2
+    {
+        public void SampleMethod2()
+        {
+            var s = ""class2"";
+            var d = ""class2"";
+        }
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(@"namespace Some.Name.Space
+{
+    public class Sample1
+    {
+        private const string C1 = ""class1"";
+        public void SampleMethod1()
+        {
+            var a = C1;
+            var b = C1;
+        }
+    }
+
+    public class Sample2
+    {
+        private const string C1 = ""class2"";
+        public void SampleMethod2()
+        {
+            var s = C1;
+            var d = C1;
+        }
+    }
+}");
+        }
+
+        [Test]
+        public async Task WithInterpolatedString_DoNothing()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var parameter
+        var a = $""some{parameter}"";
+        var b = $""some{parameter}"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(text);
+        }
+
+        [Test]
+        public async Task IgnoredCasesForEmptyString_DoNothing()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    private const Empty = """";
+
+    [Test("""")]
+    public void SampleMethod(string param = """")
+    {
+        const string empty = """";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(text);
         }
     }
 }

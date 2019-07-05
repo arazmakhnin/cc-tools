@@ -118,7 +118,18 @@ namespace CcWorks.Workers.Solvers
                 return result;
             }
 
-            var indent = classNode.GetLeadingTrivia().ToString();
+            var trivia = classNode.GetLeadingTrivia().ToString();
+            trivia = trivia.Substring(trivia.LastIndexOf('\n') + 1);
+
+            string indent;
+            if (string.IsNullOrEmpty(trivia))
+            {
+                indent = "    ";
+            }
+            else
+            {
+                indent = trivia + trivia;
+            }
 
             var counter = 0;
             var newConstants = new List<MemberDeclarationSyntax>();
@@ -146,7 +157,7 @@ namespace CcWorks.Workers.Solvers
                         SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
                             SyntaxFactory.Token(SyntaxKind.ConstKeyword)))
                     .NormalizeWhitespace()
-                    .WithLeadingTrivia(SyntaxFactory.Whitespace(indent + indent))
+                    .WithLeadingTrivia(SyntaxFactory.Whitespace(indent))
                     .WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed);
                 
                 newConstants.Add(constSyntax);
@@ -167,6 +178,11 @@ namespace CcWorks.Workers.Solvers
                 var value = child.WithoutTrivia().GetText().ToString();
                 if (value == "\"\"")
                 {
+                    if (IsIgnoredEmptyStringNode(child))
+                    {
+                        continue;
+                    }
+
                     var stringEmpty = SyntaxFactory.MemberAccessExpression(
                         SyntaxKind.SimpleMemberAccessExpression,
                         SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
@@ -206,6 +222,40 @@ namespace CcWorks.Workers.Solvers
 
                     editor.ReplaceNode(child, useConstant);
                 }
+            }
+        }
+
+        private static bool IsIgnoredEmptyStringNode(SyntaxNode node)
+        {
+            var parent = node;
+            while (true)
+            {
+                if (parent == null || parent is ClassDeclarationSyntax)
+                {
+                    return false;
+                }
+
+                if (parent is FieldDeclarationSyntax field)
+                {
+                    return field.Modifiers.Any(t => t.Kind() == SyntaxKind.ConstKeyword);
+                }
+
+                if (parent is ParameterSyntax)
+                {
+                    return true;
+                }
+
+                if (parent is LocalDeclarationStatementSyntax declaration)
+                {
+                    return declaration.Modifiers.Any(t => t.Kind() == SyntaxKind.ConstKeyword);
+                }
+
+                if (parent is AttributeArgumentSyntax)
+                {
+                    return true;
+                }
+
+                parent = parent.Parent;
             }
         }
 
