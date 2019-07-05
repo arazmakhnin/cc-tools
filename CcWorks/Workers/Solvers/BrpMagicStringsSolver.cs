@@ -140,7 +140,7 @@ namespace CcWorks.Workers.Solvers
                 counter++;
 
                 var constantSubstring = constant.Substring(1, constant.Length - 2);
-                var constName = GetConstantName(constantSubstring);
+                var constName = GetConstantName(constantSubstring, counter);
                 var constValue = constantSubstring;
 
                 var constSyntax = SyntaxFactory.FieldDeclaration(
@@ -171,15 +171,25 @@ namespace CcWorks.Workers.Solvers
             return result;
         }
 
-        private static string GetConstantName(string constantSubstring)
+        private static string GetConstantName(string constantSubstring, int counter)
         {
-            var trimmed = Regex.Replace(
-                constantSubstring.Trim(),
-                @"[^\w]",
-                string.Empty,
-                RegexOptions.None,
-                TimeSpan.FromSeconds(1.5));
-            var constName = trimmed.Substring(0, 1).ToUpper() + trimmed.Substring(1, trimmed.Length - 1);
+            var nonNumeral = Regex.Replace(constantSubstring, @"[\d-]", string.Empty);
+            var trimmed = Regex.Replace(nonNumeral.Replace(" ", string.Empty), @"[^\w]", string.Empty);
+
+            string constName;
+            if (trimmed.Any())
+            {
+                constName = trimmed.Substring(0, 1).ToUpper();
+                constName = constName
+                    + (trimmed.Length > 1
+                        ? trimmed.Substring(1, trimmed.Length - 1)
+                        : string.Empty);
+            }
+            else
+            {
+                constName = "C" + counter;
+            }
+
             return constName;
         }
 
