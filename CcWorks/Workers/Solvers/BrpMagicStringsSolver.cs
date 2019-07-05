@@ -173,8 +173,9 @@ namespace CcWorks.Workers.Solvers
 
         private static string GetConstantName(string constantSubstring, int counter)
         {
-            var nonNumeral = Regex.Replace(constantSubstring, @"[\d-]", string.Empty);
-            var trimmed = Regex.Replace(nonNumeral.Replace(" ", string.Empty), @"[^\w]", string.Empty);
+            var nonLeadingNumbers = Regex.Replace(constantSubstring, @"(^\d+$)|(^\d+(?=\w))", string.Empty);
+            var nonSpace = nonLeadingNumbers.Replace(" ", string.Empty);
+            var trimmed = Regex.Replace(nonSpace, @"[^\w]", string.Empty);
 
             string constName;
             if (trimmed.Any())
