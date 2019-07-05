@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -137,8 +139,9 @@ namespace CcWorks.Workers.Solvers
             {
                 counter++;
 
-                var constName = "C" + counter;
-                var constValue = constant.Substring(1, constant.Length - 2);
+                var constantSubstring = constant.Substring(1, constant.Length - 2);
+                var constName = GetConstantName(constantSubstring);
+                var constValue = constantSubstring;
 
                 var constSyntax = SyntaxFactory.FieldDeclaration(
                         SyntaxFactory.VariableDeclaration(
@@ -166,6 +169,18 @@ namespace CcWorks.Workers.Solvers
 
             editor.InsertMembers(classNode, 0, newConstants);
             return result;
+        }
+
+        private static string GetConstantName(string constantSubstring)
+        {
+            var trimmed = Regex.Replace(
+                constantSubstring.Trim(),
+                @"[^\w]",
+                string.Empty,
+                RegexOptions.None,
+                TimeSpan.FromSeconds(1.5));
+            var constName = trimmed.Substring(0, 1).ToUpper() + trimmed.Substring(1, trimmed.Length - 1);
+            return constName;
         }
 
         private static void ReplaceMagicStrings(
