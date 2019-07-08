@@ -140,7 +140,7 @@ namespace CcWorks.Workers.Solvers
                 counter++;
 
                 var constantSubstring = constant.Substring(1, constant.Length - 2);
-                var constName = GetConstantName(constantSubstring, counter);
+                var constName = GetConstantName(constantSubstring, result, counter);
                 var constValue = constantSubstring;
 
                 var constSyntax = SyntaxFactory.FieldDeclaration(
@@ -171,14 +171,14 @@ namespace CcWorks.Workers.Solvers
             return result;
         }
 
-        private static string GetConstantName(string constantSubstring, int counter)
+        private static string GetConstantName(string constantSubstring, Dictionary<string, string> addedConstants, int counter)
         {
             var nonLeadingNumbers = Regex.Replace(constantSubstring, @"(^\d+$)|(^\d+(?=\w))", string.Empty);
             var nonSpace = nonLeadingNumbers.Replace(" ", string.Empty);
-            var trimmed = Regex.Replace(nonSpace, @"[^\w]", string.Empty);
+            var trimmed = Regex.Replace(nonSpace, @"\W", string.Empty);
 
             string constName;
-            if (trimmed.Any())
+            if (trimmed.Any() && !addedConstants.Values.Contains(trimmed))
             {
                 constName = trimmed.Substring(0, 1).ToUpper();
                 constName = constName
