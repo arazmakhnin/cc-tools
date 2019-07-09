@@ -140,7 +140,7 @@ namespace CcWorks.Workers.Solvers
                 counter++;
 
                 var constantSubstring = constant.Substring(1, constant.Length - 2);
-                var constName = GetConstantName(constantSubstring, result, counter);
+                var constName = GetConstantName(constantSubstring, result, classNode, counter);
                 var constValue = constantSubstring;
 
                 var constSyntax = SyntaxFactory.FieldDeclaration(
@@ -171,20 +171,47 @@ namespace CcWorks.Workers.Solvers
             return result;
         }
 
-        private static string GetConstantName(string constantSubstring, Dictionary<string, string> addedConstants, int counter)
+        private static string GetConstantName(
+            string constantSubstring,
+            Dictionary<string, string> addedConstants,
+            ClassDeclarationSyntax classNode,
+            int counter)
         {
             var nonLeadingNumbers = Regex.Replace(constantSubstring, @"(^\d+$)|(^\d+(?=\w))", string.Empty);
             var nonSpace = nonLeadingNumbers.Replace(" ", string.Empty);
             var trimmed = Regex.Replace(nonSpace, @"\W", string.Empty);
 
             string constName;
-            if (trimmed.Any() && !addedConstants.Values.Contains(trimmed))
+            if (trimmed.Any())
             {
                 constName = trimmed.Substring(0, 1).ToUpper();
-                constName = constName
+                var upperString = constName
                     + (trimmed.Length > 1
                         ? trimmed.Substring(1, trimmed.Length - 1)
                         : string.Empty);
+
+                Func<MemberDeclarationSyntax, bool> checkExpression = member =>
+                {
+                    var isFieldName = (member as FieldDeclarationSyntax)?.Declaration.Variables.Any(
+                        variable => variable.Identifier.Text.Equals(upperString));
+                    var isPropertyName = (member as PropertyDeclarationSyntax)?.Identifier.Text.Equals(upperString);
+                    var isMethodName = (member as MethodDeclarationSyntax)?.Identifier.Text.Equals(upperString);
+
+                    return isFieldName == true || isPropertyName == true || isMethodName == true;
+                };
+
+                if (!addedConstants.Values.Contains(upperString)
+                    && !classNode.DescendantNodes()
+                        .OfType<MemberDeclarationSyntax>()
+                        .Any(
+                            checkExpression))
+                {
+                    constName = upperString;
+                }
+                else
+                {
+                    constName = "C" + counter;
+                }
             }
             else
             {

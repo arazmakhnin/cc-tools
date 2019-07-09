@@ -386,5 +386,68 @@ namespace CcWorks.Tests.Solvers
     }
 }");
         }
+
+        [Test]
+        public async Task WithExistingNaming_ShouldFallbackToConstantNaming()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s = ""SampleMethod"";
+        var d = ""SampleMethod"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(
+                @"public class Sample
+{
+    private const string C1 = ""SampleMethod"";
+    public void SampleMethod()
+    {
+        var s = C1;
+        var d = C1;
+    }
+}");
+        }
+
+        [Test]
+        public async Task WithAlreadyChosenName_ShouldFallbackToConstantNaming()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s = ""1Text"";
+        var d = ""1Text"";
+        var e = ""2Text"";
+        var g = ""2Text"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(
+                @"public class Sample
+{
+    private const string Text = ""1Text"";
+    private const string C2 = ""2Text"";
+    public void SampleMethod()
+    {
+        var s = Text;
+        var d = Text;
+        var e = C2;
+        var g = C2;
+    }
+}");
+        }
     }
 }
