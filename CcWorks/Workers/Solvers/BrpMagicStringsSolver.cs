@@ -181,44 +181,40 @@ namespace CcWorks.Workers.Solvers
             var nonSpace = nonLeadingNumbers.Replace(" ", string.Empty);
             var trimmed = Regex.Replace(nonSpace, @"\W", string.Empty);
 
-            string constName;
-            if (trimmed.Any())
+            if (!trimmed.Any())
             {
-                constName = trimmed.Substring(0, 1).ToUpper();
-                var upperString = constName
-                    + (trimmed.Length > 1
-                        ? trimmed.Substring(1, trimmed.Length - 1)
-                        : string.Empty);
-
-                Func<MemberDeclarationSyntax, bool> checkExpression = member =>
-                {
-                    var isFieldName = (member as FieldDeclarationSyntax)?.Declaration.Variables.Any(
-                        variable => variable.Identifier.Text.Equals(upperString));
-                    var isPropertyName = (member as PropertyDeclarationSyntax)?.Identifier.Text.Equals(upperString);
-                    var isMethodName = (member as MethodDeclarationSyntax)?.Identifier.Text.Equals(upperString);
-
-                    return isFieldName == true || isPropertyName == true || isMethodName == true;
-                };
-
-                if (!addedConstants.Values.Contains(upperString)
-                    && !classNode.DescendantNodes()
-                        .OfType<MemberDeclarationSyntax>()
-                        .Any(
-                            checkExpression))
-                {
-                    constName = upperString;
-                }
-                else
-                {
-                    constName = "C" + counter;
-                }
+                return GetDefaultConstantName(counter);
             }
-            else
+
+            var length = Math.Min(30, trimmed.Length);
+            var constName = trimmed.Substring(0, 1).ToUpper() + trimmed.Substring(1, length - 1);
+            if (addedConstants.Values.Contains(constName))
             {
-                constName = "C" + counter;
+                return GetDefaultConstantName(counter);
+            }
+
+            bool CheckExpression(MemberDeclarationSyntax member)
+            {
+                var isFieldName = (member as FieldDeclarationSyntax)?.Declaration.Variables.Any(variable => variable.Identifier.Text.Equals(constName));
+                var isPropertyName = (member as PropertyDeclarationSyntax)?.Identifier.Text.Equals(constName);
+                var isMethodName = (member as MethodDeclarationSyntax)?.Identifier.Text.Equals(constName);
+
+                return isFieldName == true || isPropertyName == true || isMethodName == true;
+            }
+
+            if (classNode.DescendantNodes()
+                .OfType<MemberDeclarationSyntax>()
+                .Any(CheckExpression))
+            {
+                return GetDefaultConstantName(counter);
             }
 
             return constName;
+        }
+
+        private static string GetDefaultConstantName(int counter)
+        {
+            return "C" + counter;
         }
 
         private static void ReplaceMagicStrings(

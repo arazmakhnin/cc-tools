@@ -96,8 +96,10 @@ namespace CcWorks.Tests.Solvers
     {
         var s = ""double"";
         var d = ""double"";
-        var a = ""some"";
-        var b = ""some"";
+        var a = ""a"";
+        var b = ""a"";
+        var message1 = ""There is a long message with full description of error (for example). Solver shouldn't create so long names for constants."";
+        var message2 = ""There is a long message with full description of error (for example). Solver shouldn't create so long names for constants."";
     }
 }";
 
@@ -108,13 +110,16 @@ namespace CcWorks.Tests.Solvers
             result.ShouldBe(@"public class Sample
 {
     private const string Double = ""double"";
-    private const string Some = ""some"";
+    private const string A = ""a"";
+    private const string Thereisalongmessagewithfulldes = ""There is a long message with full description of error (for example). Solver shouldn't create so long names for constants."";
     public void SampleMethod()
     {
         var s = Double;
         var d = Double;
-        var a = Some;
-        var b = Some;
+        var a = A;
+        var b = A;
+        var message1 = Thereisalongmessagewithfulldes;
+        var message2 = Thereisalongmessagewithfulldes;
     }
 }");
         }
