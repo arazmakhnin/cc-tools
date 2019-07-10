@@ -24,7 +24,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(@"public class Sample
+            result.FileText.ShouldBe(@"public class Sample
 {
     public void SampleMethod()
     {
@@ -49,7 +49,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(@"public class Sample
+            result.FileText.ShouldBe(@"public class Sample
 {
     public void SampleMethod()
     {
@@ -75,7 +75,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(@"public class Sample
+            result.FileText.ShouldBe(@"public class Sample
 {
     private const string Double = ""double"";
     public void SampleMethod()
@@ -107,7 +107,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(@"public class Sample
+            result.FileText.ShouldBe(@"public class Sample
 {
     private const string Double = ""double"";
     private const string A = ""a"";
@@ -143,7 +143,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(@"public class Sample
+            result.FileText.ShouldBe(@"public class Sample
 {
     private const string Double = ""double"";
     public void SampleMethod()
@@ -178,7 +178,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(@"namespace Some.Name.Space
+            result.FileText.ShouldBe(@"namespace Some.Name.Space
 {
     public class Sample
     {
@@ -214,7 +214,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(@"public class Sample
+            result.FileText.ShouldBe(@"public class Sample
 {
     private const string Some = ""some"";
     private const string ExistingConst = ""double"";
@@ -257,7 +257,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(@"namespace Some.Name.Space
+            result.FileText.ShouldBe(@"namespace Some.Name.Space
 {
     public class Sample1
     {
@@ -299,7 +299,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(text);
+            result.FileText.ShouldBe(text);
         }
 
         [Test]
@@ -321,7 +321,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(text);
+            result.FileText.ShouldBe(text);
         }
 
         [Test]
@@ -343,7 +343,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(
+            result.FileText.ShouldBe(
                 @"public class Sample
 {
     private const string Double = ""1double"";
@@ -377,7 +377,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(
+            result.FileText.ShouldBe(
                 @"public class Sample
 {
     private const string C1 = ""123123123"";
@@ -409,7 +409,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(
+            result.FileText.ShouldBe(
                 @"public class Sample
 {
     private const string C1 = ""SampleMethod"";
@@ -440,7 +440,7 @@ namespace CcWorks.Tests.Solvers
             var result = await BrpMagicStringsSolver.Solve(text);
 
             // assert
-            result.ShouldBe(
+            result.FileText.ShouldBe(
                 @"public class Sample
 {
     private const string Text = ""1Text"";

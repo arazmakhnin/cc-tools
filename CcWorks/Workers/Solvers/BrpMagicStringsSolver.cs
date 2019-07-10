@@ -13,7 +13,7 @@ namespace CcWorks.Workers.Solvers
 {
     public static class BrpMagicStringsSolver
     {
-        public static async Task<string> Solve(string text)
+        public static async Task<BrpMagicStringsResult> Solve(string text)
         {
             using (var workspace = new AdhocWorkspace())
             {
@@ -28,7 +28,8 @@ namespace CcWorks.Workers.Solvers
                 var document = workspace.AddDocument(newProject.Id, "NewFile.cs", SourceText.From(text));
                 var syntaxRoot = await document.GetSyntaxRootAsync();
                 var editor = await DocumentEditor.CreateAsync(document);
-                
+
+                var stats = new MagicStringsReplacementStatistics();
                 foreach (var classNode in syntaxRoot.DescendantNodes().OfType<ClassDeclarationSyntax>())
                 {
                     var existingConstants = AnalyzeExistingConstants(classNode);
@@ -39,16 +40,18 @@ namespace CcWorks.Workers.Solvers
                         .ToList();
 
                     var newConstants = CreateConstants(constantsToCreate, classNode, editor);
+                    stats.ConstantsCreated += newConstants.Count;
 
                     var allConstants = existingConstants
                         .Concat(newConstants)
                         .ToDictionary(kv => kv.Key, kv => kv.Value);
 
-                    ReplaceMagicStrings(allConstants, classNode, editor);
+                    ReplaceMagicStrings(allConstants, classNode, editor, stats);
                 }
 
                 var newDocument = editor.GetChangedDocument();
-                return (await newDocument.GetTextAsync()).ToString();
+                var sourceText = await newDocument.GetTextAsync();
+                return new BrpMagicStringsResult(sourceText.ToString(), stats);
             }
         }
 
@@ -74,7 +77,10 @@ namespace CcWorks.Workers.Solvers
                 var constantName = constant.Identifier.Text;
                 var constantValue = stringValue.GetText().ToString();
 
-                result.Add(constantValue, constantName);
+                if (!result.ContainsKey(constantValue))
+                {
+                    result.Add(constantValue, constantName);
+                }
             }
 
             return result;
@@ -220,7 +226,8 @@ namespace CcWorks.Workers.Solvers
         private static void ReplaceMagicStrings(
             Dictionary<string, string> constants, 
             SyntaxNode classNode, 
-            DocumentEditor editor)
+            DocumentEditor editor,
+            MagicStringsReplacementStatistics stats)
         {
             foreach (var child in classNode.DescendantNodes().OfType<LiteralExpressionSyntax>().Where(s => s.Kind() == SyntaxKind.StringLiteralExpression))
             {
@@ -248,6 +255,7 @@ namespace CcWorks.Workers.Solvers
                     }
 
                     editor.ReplaceNode(child, stringEmpty);
+                    stats.EmptyStringsReplaced++;
                 }
 
                 if (constants.TryGetValue(value, out var name))
@@ -270,6 +278,7 @@ namespace CcWorks.Workers.Solvers
                     }
 
                     editor.ReplaceNode(child, useConstant);
+                    stats.MagicStringsReplaced++;
                 }
             }
         }
@@ -326,5 +335,24 @@ namespace CcWorks.Workers.Solvers
                 parent = parent.Parent;
             }
         }
+    }
+
+    public class BrpMagicStringsResult
+    {
+        public string FileText { get; }
+        public MagicStringsReplacementStatistics Stats { get; }
+
+        public BrpMagicStringsResult(string fileText, MagicStringsReplacementStatistics stats)
+        {
+            FileText = fileText;
+            Stats = stats;
+        }
+    }
+
+    public class MagicStringsReplacementStatistics
+    {
+        public int ConstantsCreated { get; set; }
+        public int MagicStringsReplaced { get; set; }
+        public int EmptyStringsReplaced { get; set; }
     }
 }
