@@ -66,16 +66,38 @@ namespace CcWorks.Workers
                 ? "develop"
                 : repoSettings.MainBranch;
 
+            var key = issue.Key.ToString();
+            var ticketType = GetTicketType(issue);
+
             if (!isOnlyPr)
             {
+                var stagedFiles = GitHelper.Exec("git diff --name-only --cached", repoName, commonSettings.ProjectsPath);
+                var changedFiles = GitHelper.Exec("git diff --name-only", repoName, commonSettings.ProjectsPath);
+
+                if (!stagedFiles.Any() && !changedFiles.Any())
+                {
+                    throw new CcException("No changed files found");
+                }
+
+                var filesForCheck = stagedFiles.Any() ? stagedFiles : changedFiles;
+                if (filesForCheck.Any(f => f.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)))
+                {
+                    ConsoleHelper.WriteColor("You are going to commit changes in sln-file. Do you really want to do it? [y/N]: ", ConsoleColor.Yellow);
+                    var answer = Console.ReadLine() ?? string.Empty;
+                    if (!answer.Equals("y", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return;
+                    }
+                }
+
                 var result = GitHelper.Exec("git rev-parse --abbrev-ref HEAD", repoName, commonSettings.ProjectsPath);
                 if (!result.Any() || result.Count > 1 || result.First() != mainBranch)
                 {
                     ConsoleHelper.WriteColor(
                         $"Your current branch is {result.First()}, but usually it should be {mainBranch}. Do you really want to create new branch from this one? [y/N]: ",
                         ConsoleColor.Yellow);
-                    var y = Console.ReadLine() ?? string.Empty;
-                    if (!y.Equals("y", StringComparison.OrdinalIgnoreCase))
+                    var answer = Console.ReadLine() ?? string.Empty;
+                    if (!answer.Equals("y", StringComparison.OrdinalIgnoreCase))
                     {
                         return;
                     }
@@ -117,17 +139,7 @@ namespace CcWorks.Workers
                 }
 
                 Console.WriteLine("done");
-            }
-
-            var key = issue.Key.ToString();
-            var ticketType = GetTicketType(issue);
-
-            if (!isOnlyPr)
-            {
-                Console.Write("Get changes... ");
-                var stagedFiles = GitHelper.Exec("git diff --name-only --cached", repoName, commonSettings.ProjectsPath);
-                Console.WriteLine("done");
-
+            
                 Console.Write("Push changes... ");
                 var createBranchCommand = $"git checkout -b {branchPrefix}/{key}";
                 var commitOption = stagedFiles.Any() ? string.Empty : "a";
@@ -273,7 +285,7 @@ namespace CcWorks.Workers
                 }
                 else if (comment.Length <= 3)
                 {
-                    Console.Write($"Looks like you entered alias that isn't defined. Do you want to use \"{comment}\" as comment? [y/n]");
+                    Console.Write($"Looks like you entered alias that isn't defined. Do you want to use \"{comment}\" as comment? [y/n]: ");
                     var y = Console.ReadLine() ?? string.Empty;
                     if (!y.Equals("y", StringComparison.OrdinalIgnoreCase))
                     {
