@@ -165,45 +165,14 @@ namespace CcWorks.Workers
                 ? string.Empty
                 : $@"# Note for Reviewers\r\n- {noteForReviewer}\r\n\r\n";
 
-            var testCoverage = @"# Tests and coverage\r\n- %testCoverageText%\r\n\r\n";
-            var coverageWarning = true;
-
-            if (issue.Labels.Contains("BasicService"))
-            {
-                testCoverage = testCoverage.Replace(
-                    "%testCoverageText%",
-                    "Tests are not required for `BasicService` tickets.");
-                coverageWarning = false;
-            }
-            else if (issue.Type == "BRP Issues")
-            {
-                testCoverage = testCoverage.Replace("%testCoverageText%", "Tests are not required for `BRP Tickets`.");
-                coverageWarning = false;
-            }
-            else if (issue.Type == "Symbolic Execution - Memory Leaks")
-            {
-                testCoverage = testCoverage.Replace("%testCoverageText%", "Tests are not required for `Memory Leak Tickets`.");
-                coverageWarning = false;
-            }
-            else if (issue.Type == "Dead Code")
-            {
-                testCoverage = testCoverage.Replace(
-                    "%testCoverageText%",
-                    "Tests are not required for `Dead Code Tickets`.");
-                coverageWarning = false;
-            }
-
-            if (testCoverage.Contains("%testCoverageText%"))
-            {
-                testCoverage = testCoverage.Replace("%testCoverageText%", string.Empty);
-            }
+            var (testCoverageMessage, coverageWarning) = GetTestCoverageMessage(issue);
 
             var mutation = @"mutation
                 {
                   createPullRequest(input:{
                     title:""[" + key + "] " + issue.Summary + @""", 
                     baseRefName: """ + mainBranch + @""", 
-                    body: ""# Links\r\nhttps://jira.devfactory.com/browse/" + key + @"\r\n\r\n# Changes\r\n- " + comment + @"\r\n\r\n" + fullNote + testCoverage + @"# Review\r\n- Please insert QB sheet here"", 
+                    body: ""# Links\r\nhttps://jira.devfactory.com/browse/" + key + @"\r\n\r\n# Changes\r\n- " + comment + @"\r\n\r\n" + fullNote + testCoverageMessage + @"# Review\r\n- Please insert QB sheet here"", 
                     headRefName: """ + branchPrefix + "/" + key + @""", 
                     repositoryId: """ + repoId + @"""
                   }){
@@ -260,6 +229,36 @@ namespace CcWorks.Workers
             Console.WriteLine("done");
 
             Console.WriteLine("New PR url: " + prUrl);
+        }
+
+        private static (string, bool) GetTestCoverageMessage(Issue issue)
+        {
+            var coverageWarning = true;
+
+            var message = string.Empty;
+            if (issue.Labels.Contains("BasicService"))
+            {
+                message = "Tests are not required for `BasicService` tickets.";
+                coverageWarning = false;
+            }
+            else if (issue.Type == "BRP Issues")
+            {
+                message = "Tests are not required for `BRP` tickets.";
+                coverageWarning = false;
+            }
+            else if (issue.Type == "Symbolic Execution - Memory Leaks")
+            {
+                message = "Tests are not required for `Memory Leak` tickets.";
+                coverageWarning = false;
+            }
+            else if (issue.Type == "Dead Code")
+            {
+                message = "Tests are not required for `Dead Code` tickets.";
+                coverageWarning = false;
+            }
+
+            var testCoverage = $@"# Tests and coverage\r\n- {message}\r\n\r\n";
+            return (testCoverage, coverageWarning);
         }
 
         private static string GetComment(PrCommandSettings settings, Parameters parameters)
