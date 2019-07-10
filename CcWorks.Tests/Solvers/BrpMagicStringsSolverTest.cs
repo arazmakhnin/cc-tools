@@ -77,11 +77,11 @@ namespace CcWorks.Tests.Solvers
             // assert
             result.ShouldBe(@"public class Sample
 {
-    private const string C1 = ""double"";
+    private const string Double = ""double"";
     public void SampleMethod()
     {
-        var s = C1;
-        var d = C1;
+        var s = Double;
+        var d = Double;
     }
 }");
         }
@@ -96,8 +96,10 @@ namespace CcWorks.Tests.Solvers
     {
         var s = ""double"";
         var d = ""double"";
-        var a = ""some"";
-        var b = ""some"";
+        var a = ""a"";
+        var b = ""a"";
+        var message1 = ""There is a long message with full description of error (for example). Solver shouldn't create so long names for constants."";
+        var message2 = ""There is a long message with full description of error (for example). Solver shouldn't create so long names for constants."";
     }
 }";
 
@@ -107,14 +109,17 @@ namespace CcWorks.Tests.Solvers
             // assert
             result.ShouldBe(@"public class Sample
 {
-    private const string C1 = ""double"";
-    private const string C2 = ""some"";
+    private const string Double = ""double"";
+    private const string A = ""a"";
+    private const string Thereisalongmessagewithfulldes = ""There is a long message with full description of error (for example). Solver shouldn't create so long names for constants."";
     public void SampleMethod()
     {
-        var s = C1;
-        var d = C1;
-        var a = C2;
-        var b = C2;
+        var s = Double;
+        var d = Double;
+        var a = A;
+        var b = A;
+        var message1 = Thereisalongmessagewithfulldes;
+        var message2 = Thereisalongmessagewithfulldes;
     }
 }");
         }
@@ -140,12 +145,12 @@ namespace CcWorks.Tests.Solvers
             // assert
             result.ShouldBe(@"public class Sample
 {
-    private const string C1 = ""double"";
+    private const string Double = ""double"";
     public void SampleMethod()
     {
-        var result = Call(C1);
+        var result = Call(Double);
         var z = result 
-            ? result + C1
+            ? result + Double
             : string.Empty;
     }
 }");
@@ -177,12 +182,12 @@ namespace CcWorks.Tests.Solvers
 {
     public class Sample
     {
-        private const string C1 = ""double"";
+        private const string Double = ""double"";
         public void SampleMethod()
         {
-            var result = Call(C1);
+            var result = Call(Double);
             var z = result 
-                ? result + C1
+                ? result + Double
                 : string.Empty;
         }
     }
@@ -211,14 +216,14 @@ namespace CcWorks.Tests.Solvers
             // assert
             result.ShouldBe(@"public class Sample
 {
-    private const string C1 = ""some"";
+    private const string Some = ""some"";
     private const string ExistingConst = ""double"";
 
     public void SampleMethod()
     {
         var s = ExistingConst;
-        var a = C1;
-        var b = C1;
+        var a = Some;
+        var b = Some;
     }
 }");
         }
@@ -256,21 +261,21 @@ namespace CcWorks.Tests.Solvers
 {
     public class Sample1
     {
-        private const string C1 = ""class1"";
+        private const string Class1 = ""class1"";
         public void SampleMethod1()
         {
-            var a = C1;
-            var b = C1;
+            var a = Class1;
+            var b = Class1;
         }
     }
 
     public class Sample2
     {
-        private const string C1 = ""class2"";
+        private const string Class2 = ""class2"";
         public void SampleMethod2()
         {
-            var s = C1;
-            var d = C1;
+            var s = Class2;
+            var d = Class2;
         }
     }
 }");
@@ -317,6 +322,137 @@ namespace CcWorks.Tests.Solvers
 
             // assert
             result.ShouldBe(text);
+        }
+
+        [Test]
+        public async Task WithLeadingNumbers_ShouldRemoveThemWhenNaming()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s = ""1double"";
+        var d = ""1double"";
+        var a = ""12some"";
+        var b = ""12some"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(
+                @"public class Sample
+{
+    private const string Double = ""1double"";
+    private const string Some = ""12some"";
+    public void SampleMethod()
+    {
+        var s = Double;
+        var d = Double;
+        var a = Some;
+        var b = Some;
+    }
+}");
+        }
+
+        [Test]
+        public async Task WithAllNumbers_ShouldFallbackToConstantNaming()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s = ""123123123"";
+        var d = ""123123123"";
+        var a = ""43"";
+        var b = ""43"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(
+                @"public class Sample
+{
+    private const string C1 = ""123123123"";
+    private const string C2 = ""43"";
+    public void SampleMethod()
+    {
+        var s = C1;
+        var d = C1;
+        var a = C2;
+        var b = C2;
+    }
+}");
+        }
+
+        [Test]
+        public async Task WithExistingNaming_ShouldFallbackToConstantNaming()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s = ""SampleMethod"";
+        var d = ""SampleMethod"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(
+                @"public class Sample
+{
+    private const string C1 = ""SampleMethod"";
+    public void SampleMethod()
+    {
+        var s = C1;
+        var d = C1;
+    }
+}");
+        }
+
+        [Test]
+        public async Task WithAlreadyChosenName_ShouldFallbackToConstantNaming()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s = ""1Text"";
+        var d = ""1Text"";
+        var e = ""2Text"";
+        var g = ""2Text"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.ShouldBe(
+                @"public class Sample
+{
+    private const string Text = ""1Text"";
+    private const string C2 = ""2Text"";
+    public void SampleMethod()
+    {
+        var s = Text;
+        var d = Text;
+        var e = C2;
+        var g = C2;
+    }
+}");
         }
     }
 }
