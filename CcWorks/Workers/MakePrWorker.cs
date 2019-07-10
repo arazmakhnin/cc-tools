@@ -167,21 +167,29 @@ namespace CcWorks.Workers
 
             var testCoverage = @"# Tests and coverage\r\n- %testCoverageText%\r\n\r\n";
             var coverageWarning = true;
+
             if (issue.Labels.Contains("BasicService"))
             {
-                testCoverage = testCoverage.Replace("%testCoverageText%", "Tests are not required for `BasicService` tickets.");
+                testCoverage = testCoverage.Replace(
+                    "%testCoverageText%",
+                    "Tests are not required for `BasicService` tickets.");
                 coverageWarning = false;
             }
-
-            if (issue.Type == "BRP Issues")
+            else if (issue.Type == "BRP Issues")
             {
                 testCoverage = testCoverage.Replace("%testCoverageText%", "Tests are not required for `BRP Tickets`.");
                 coverageWarning = false;
             }
-
-            if (issue.Type == "Symbolic Execution - Memory Leaks")
+            else if (issue.Type == "Symbolic Execution - Memory Leaks")
             {
-                testCoverage = testCoverage.Replace("%testCoverageText%", "Tests are not required for memory leaks.");
+                testCoverage = testCoverage.Replace("%testCoverageText%", "Tests are not required for `Memory Leak Tickets`.");
+                coverageWarning = false;
+            }
+            else if (issue.Type == "Dead Code")
+            {
+                testCoverage = testCoverage.Replace(
+                    "%testCoverageText%",
+                    "Tests are not required for `Dead Code Tickets`.");
                 coverageWarning = false;
             }
 
