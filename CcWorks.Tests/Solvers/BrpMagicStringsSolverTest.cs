@@ -454,5 +454,39 @@ namespace CcWorks.Tests.Solvers
     }
 }");
         }
+
+        [Test]
+        public async Task WithSpecialChars_StringContentIsKept()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s = @""AnyConst"";
+        var d = @""AnyConst"";
+        var e = ""Other \""Const"";
+        var f = ""Other \""Const"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.FileText.ShouldBe(
+                @"public class Sample
+{
+    private const string AnyConst = @""AnyConst"";
+    private const string OtherConst = ""Other \""Const"";
+    public void SampleMethod()
+    {
+        var s = AnyConst;
+        var d = AnyConst;
+        var e = OtherConst;
+        var f = OtherConst;
+    }
+}");
+        }
     }
 }

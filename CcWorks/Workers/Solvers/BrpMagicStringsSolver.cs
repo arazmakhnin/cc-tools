@@ -145,25 +145,24 @@ namespace CcWorks.Workers.Solvers
             {
                 counter++;
 
-                var constantSubstring = constant.Substring(1, constant.Length - 2);
-                var constName = GetConstantName(constantSubstring, result, classNode, counter);
-                var constValue = constantSubstring;
+                var constantSubstring = SyntaxFactory.ParseToken(constant);
+                var constName = GetConstantName(constantSubstring.ValueText, result, classNode, counter);
 
                 var constSyntax = SyntaxFactory.FieldDeclaration(
-                        SyntaxFactory.VariableDeclaration(
-                                SyntaxFactory.PredefinedType(
-                                    SyntaxFactory.Token(SyntaxKind.StringKeyword)))
+                        SyntaxFactory
+                            .VariableDeclaration(
+                                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)))
                             .WithVariables(
                                 SyntaxFactory.SingletonSeparatedList(
-                                    SyntaxFactory.VariableDeclarator(
-                                            SyntaxFactory.Identifier(constName))
+                                    SyntaxFactory.VariableDeclarator(SyntaxFactory.Identifier(constName))
                                         .WithInitializer(
                                             SyntaxFactory.EqualsValueClause(
                                                 SyntaxFactory.LiteralExpression(
                                                     SyntaxKind.StringLiteralExpression,
-                                                    SyntaxFactory.Literal(constValue)))))))
+                                                    constantSubstring))))))
                     .WithModifiers(
-                        SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
+                        SyntaxFactory.TokenList(
+                            SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
                             SyntaxFactory.Token(SyntaxKind.ConstKeyword)))
                     .NormalizeWhitespace()
                     .WithLeadingTrivia(SyntaxFactory.Whitespace(indent))
