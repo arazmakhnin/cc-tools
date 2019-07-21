@@ -75,5 +75,11 @@
     "reviewCommand": {
         // Assign PR to you after moving to review
         "assignPr": true
+    },
+    "DuplicateTicketCommand": {
+        // Offset to consider when checking overlaping of lines
+        "lineoffset": 0,
+        // Look only at tickets for the same type, true, false or empty to ask every time 
+        "CheckDuplicateForNew": ""
     }
 }

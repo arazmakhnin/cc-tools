@@ -78,6 +78,11 @@ namespace CcWorks
                             await SolveWorker.DoWork(settings.CommonSettings, commandParameters, jira);
                             break;
 
+                        case "ticket":
+                        case "ticketcheck":
+                            await DuplicateTicketChecker.DoWork(settings.DuplicateTicketCommand, commandParameters, jira);
+                            break;
+
                         case "exit":
                             return;
 
