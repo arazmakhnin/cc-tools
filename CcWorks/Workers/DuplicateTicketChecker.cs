@@ -46,8 +46,8 @@ namespace CcWorks.Workers
 
             if (tickets.Any())
             {
-                Console.WriteLine("Here are the possible duplications:");
-                tickets.ForEach(issue => Console.WriteLine($"https://jira.devfactory.com/browse/{issue.Key}"));
+                ConsoleHelper.WriteColor("Here are the possible duplications:\n\n", ConsoleColor.DarkYellow);
+                tickets.ForEach(issue => ConsoleHelper.WriteColor($"https://jira.devfactory.com/browse/{issue.Key}\n", ConsoleColor.Yellow));
             }
             else
             {
@@ -84,17 +84,15 @@ namespace CcWorks.Workers
                         var overlap = locations.Any(
                             location => queryFiles.Any(
                                 issueLocation =>
-                                    issueLocation.FileName.Equals(
-                                        location.FileName,
-                                        StringComparison.OrdinalIgnoreCase)
+                                    issueLocation.FileName.Equals(location.FileName, StringComparison.OrdinalIgnoreCase)
                                     && (issueLocation.StartLine >= location.StartLine + settings.LineOffset
-                                        || issueLocation.StartLine >= location.StartLine - settings.LineOffset)
-                                    && (issueLocation.StartLine <= location.EndLine + settings.LineOffset
+                                        || issueLocation.StartLine >= location.StartLine - settings.LineOffset
+                                        || issueLocation.StartLine <= location.EndLine + settings.LineOffset
                                         || issueLocation.StartLine <= location.EndLine - settings.LineOffset)
                                     && (issueLocation.EndLine >= location.StartLine + settings.LineOffset
                                         || issueLocation.EndLine >= location.StartLine - settings.LineOffset)
-                                    && (issueLocation.EndLine <= location.EndLine + settings.LineOffset
-                                        || issueLocation.EndLine <= location.EndLine - settings.LineOffset)));
+                                    || issueLocation.EndLine <= location.EndLine + settings.LineOffset
+                                    || issueLocation.EndLine <= location.EndLine - settings.LineOffset));
                         return overlap;
                     })
                 .ToList();
