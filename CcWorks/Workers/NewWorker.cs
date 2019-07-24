@@ -94,12 +94,12 @@ namespace CcWorks.Workers
                 {
                     ConsoleHelper.WriteColor(
                         $"There are open tickets that overlap some of the code for the ticket you just created,\n"
-                        + $" please look into them to avoid conflicts and working on duplicated tickets.",
+                        + $" please look into them to avoid conflicts and working on duplicated tickets.\n\n",
                         ConsoleColor.DarkYellow);
 
                     duplicates.ForEach(
                         dupIssue => ConsoleHelper.WriteColor(
-                            $"https://jira.devfactory.com/browse/{dupIssue.Key}",
+                            $"https://jira.devfactory.com/browse/{dupIssue.Key}\n",
                             ConsoleColor.Yellow));
                 }
             }
