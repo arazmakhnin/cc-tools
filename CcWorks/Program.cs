@@ -51,7 +51,7 @@ namespace CcWorks
                             break;
 
                         case "new":
-                            await NewWorker.DoWork(settings.NewCommand, settings.CommonSettings, commandParameters, jira);
+                            await NewWorker.DoWork(settings.NewCommand, settings, commandParameters, jira);
                             break;
 
                         case "pr":
