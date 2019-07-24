@@ -84,18 +84,26 @@ namespace CcWorks.Workers
                         var overlap = locations.Any(
                             location => queryFiles.Any(
                                 issueLocation =>
-                                    issueLocation.FileName.Equals(location.FileName, StringComparison.OrdinalIgnoreCase)
-                                    && (issueLocation.StartLine >= location.StartLine + settings.LineOffset
-                                        || issueLocation.StartLine >= location.StartLine - settings.LineOffset
-                                        || issueLocation.StartLine <= location.EndLine + settings.LineOffset
-                                        || issueLocation.StartLine <= location.EndLine - settings.LineOffset)
-                                    && (issueLocation.EndLine >= location.StartLine + settings.LineOffset
-                                        || issueLocation.EndLine >= location.StartLine - settings.LineOffset)
-                                    || issueLocation.EndLine <= location.EndLine + settings.LineOffset
-                                    || issueLocation.EndLine <= location.EndLine - settings.LineOffset));
+                                {
+                                    var startLineInsideRange = IsInsideRange(issueLocation.StartLine, location, settings);
+                                    var endLineInsideRange = IsInsideRange(issueLocation.EndLine, location, settings);
+                                    var otherStartLineInsideRange = IsInsideRange(location.StartLine, issueLocation, settings);
+                                    var otherEndLineInsideRange = IsInsideRange(location.EndLine, issueLocation, settings);
+
+                                    return (startLineInsideRange || endLineInsideRange)
+                                        || (otherStartLineInsideRange || otherEndLineInsideRange);
+                                }));
                         return overlap;
                     })
                 .ToList();
+        }
+
+        private static bool IsInsideRange(int position, IssueLocation location, DuplicateTicketCommandSettings settings)
+        {
+            return (position >= location.StartLine + settings.LineOffset
+                    || position >= location.StartLine - settings.LineOffset)
+                && (position <= location.EndLine + settings.LineOffset
+                    || position <= location.EndLine - settings.LineOffset);
         }
 
         private static List<IssueLocation> GetIssueLocationsFromTicket(Issue issue)
