@@ -28,9 +28,9 @@ namespace CcWorks.Workers
             var ticketKey = JiraHelper.GetIssueKey(ticketUrl);
 
             bool sameTypeOnly;
-            if (settings.CheckDuplicateForNew.HasValue)
+            if (settings.CheckSameTypeOnly.HasValue)
             {
-                sameTypeOnly = settings.CheckDuplicateForNew.Value;
+                sameTypeOnly = settings.CheckSameTypeOnly.Value;
             }
             else
             {

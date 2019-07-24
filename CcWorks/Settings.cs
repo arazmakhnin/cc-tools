@@ -70,6 +70,7 @@ namespace CcWorks
 
     public class DuplicateTicketCommandSettings
     {
+        public bool? CheckSameTypeOnly { get; set; }
         public bool? CheckDuplicateForNew { get; set; }
         public int LineOffset { get; set; } = 0;
     }
