@@ -13,5 +13,15 @@ namespace CcWorks
 
         [JsonProperty("endLine")]
         public int EndLine { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is IssueLocation location)
+            {
+                return FileName == location.FileName && StartLine == location.StartLine && EndLine == location.EndLine;
+            }
+
+            return false;
+        }
     }
 }

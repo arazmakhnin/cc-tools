@@ -83,5 +83,17 @@
         "CheckSameTypeOnly": "",
         // Look only at tickets for the same type, true, false or empty to ask every time 
         "CheckDuplicateForNew": ""
+    },
+    "BacklogCleanupCommand": {
+        // How many tickets to run per batch, leave empty ("") to ask every time
+        "MaxIssuesPerRun" : 5000,
+        // How many days back to look at done tickets, leave empty ("") to ask every time
+        "PastDaysForDoneTickets" : 7,
+        // How many days back to look at Created tickets, leave empty ("") to ask every time
+        "PastDaysForCreatedTickets" : 7,
+        // How many days back to look at HUT tickets, leave empty ("") to ask every time
+        "PastDaysForHutTickets" : 7,
+        // How many days it takes to ignore the ProcessedLabel, leave empty ("") to ask every time
+        "ExpirationDaysForProcessedTickets" : 180
     }
 }

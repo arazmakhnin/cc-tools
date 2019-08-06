@@ -87,8 +87,7 @@ namespace CcWorks.Workers
                 var duplicates = await DuplicateTicketChecker.GetDuplicatedTickets(
                     newIssue.Key.Value,
                     checkSameTypeOnly,
-                    jira,
-                    duplicateTicketSettings);
+                    duplicateTicketSettings.LineOffset);
 
                 if (duplicates.Any())
                 {

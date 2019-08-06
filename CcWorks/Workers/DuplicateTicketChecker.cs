@@ -41,7 +41,7 @@ namespace CcWorks.Workers
             }
 
             Console.WriteLine("Getting duplicate tickets report... ");
-            var tickets = await GetDuplicatedTickets(ticketKey, sameTypeOnly, jira, settings);
+            var tickets = await GetDuplicatedTickets(ticketKey, sameTypeOnly, jira, settings.LineOffset);
 
 
             if (tickets.Any())
@@ -59,20 +59,21 @@ namespace CcWorks.Workers
             string ticketKey,
             bool sameTypeOnly,
             Jira jira,
-            DuplicateTicketCommandSettings settings)
+            int lineOffset,
+            DetectionMethod method = DetectionMethod.Overlap)
         {
             var issue = await jira.Issues.GetIssueAsync(ticketKey);
 
-            var queryFiles = GetIssueLocationsFromTicket(issue);
+            var queryFiles = LocationHelper.GetIssueLocationsFromTicket(issue);
 
             var fileQuery = new StringBuilder();
 
-            queryFiles.ForEach(
-                locations => { fileQuery.Append($@"and description ~""{locations.FileName}"" "); });
+            queryFiles.ForEach(locations => { fileQuery.Append($@"and description ~""{locations.FileName}"" "); });
 
-            var openStatuses = @"AND status in (""in progress"", ""ready to refactor"", ""ready for review"", ""code review"", ""code merge"")";
+            var openStatuses =
+                @"AND status in (""in progress"", ""ready to refactor"", ""ready for review"", ""code review"", ""code merge"")";
             var jql = $@"Project = CC {openStatuses} {fileQuery} Order By Updated DESC";
-            var issues = await jira.Issues.GetIssuesFromJqlAsync(jql) ;
+            var issues = await jira.Issues.GetIssuesFromJqlAsync(jql);
             return issues.Where(
                     dup => issue.Key.Value != dup.Key.Value
                         && issue.GetScmUrl() == dup.GetScmUrl()
@@ -80,37 +81,51 @@ namespace CcWorks.Workers
                 .Where(
                     dup =>
                     {
-                        var locations = GetIssueLocationsFromTicket(dup);
-                        var overlap = locations.Any(
-                            location => queryFiles.Any(
-                                issueLocation =>
-                                {
-                                    var startLineInsideRange = IsInsideRange(issueLocation.StartLine, location, settings);
-                                    var endLineInsideRange = IsInsideRange(issueLocation.EndLine, location, settings);
-                                    var otherStartLineInsideRange = IsInsideRange(location.StartLine, issueLocation, settings);
-                                    var otherEndLineInsideRange = IsInsideRange(location.EndLine, issueLocation, settings);
+                        var locations = LocationHelper.GetIssueLocationsFromTicket(dup);
+                        if (method == DetectionMethod.Overlap)
+                        {
+                            var overlap = locations.Any(
+                                location => queryFiles.Any(
+                                    issueLocation =>
+                                    {
+                                        var startLineInsideRange = LocationHelper.IsInsideRange(
+                                            issueLocation.StartLine,
+                                            location,
+                                            lineOffset);
+                                        var endLineInsideRange = LocationHelper.IsInsideRange(
+                                            issueLocation.EndLine,
+                                            location,
+                                            lineOffset);
+                                        var otherStartLineInsideRange = LocationHelper.IsInsideRange(
+                                            location.StartLine,
+                                            issueLocation,
+                                            lineOffset);
+                                        var otherEndLineInsideRange = LocationHelper.IsInsideRange(
+                                            location.EndLine,
+                                            issueLocation,
+                                            lineOffset);
 
-                                    return (startLineInsideRange || endLineInsideRange)
-                                        || (otherStartLineInsideRange || otherEndLineInsideRange);
-                                }));
-                        return overlap;
+                                        return (startLineInsideRange || endLineInsideRange)
+                                            || (otherStartLineInsideRange || otherEndLineInsideRange);
+                                    }));
+                            return overlap;
+                        }
+
+                        return locations.Count == queryFiles.Count
+                            && locations.All(
+                                location => queryFiles.Any(
+                                    issueLocation =>
+                                        issueLocation.FileName == location.FileName
+                                        && issueLocation.StartLine == location.StartLine
+                                        && issueLocation.EndLine == location.EndLine));
                     })
                 .ToList();
         }
 
-        private static bool IsInsideRange(int position, IssueLocation location, DuplicateTicketCommandSettings settings)
+        public enum DetectionMethod
         {
-            return (position >= location.StartLine + settings.LineOffset
-                    || position >= location.StartLine - settings.LineOffset)
-                && (position <= location.EndLine + settings.LineOffset
-                    || position <= location.EndLine - settings.LineOffset);
-        }
-
-        private static List<IssueLocation> GetIssueLocationsFromTicket(Issue issue)
-        {
-            var fileRegex = new Regex(@"\[([^\]]+)\]");
-            var json = fileRegex.Match(issue.Description).Value;
-            return JsonConvert.DeserializeObject<List<IssueLocation>>(json);
+            Overlap,
+            Exact
         }
     }
 }

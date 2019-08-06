@@ -74,4 +74,13 @@ namespace CcWorks
         public bool? CheckDuplicateForNew { get; set; }
         public int LineOffset { get; set; } = 0;
     }
+
+    public class BacklogCleanupCommandSettings
+    {
+        public int? MaxIssuesPerRun { get; set; }
+        public int? PastDaysForDoneTickets { get; set; }
+        public int? PastDaysForCreatedTickets { get; set; }
+        public int? PastDaysForHutTickets { get; set; }
+        public int? ExpirationDaysForProcessedTickets { get; set; }
+    }
 }

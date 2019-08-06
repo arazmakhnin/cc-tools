@@ -25,6 +25,7 @@ namespace CcWorks
                 "https://jira.devfactory.com", 
                 settings.CommonSettings.JiraUserName, 
                 settings.CommonSettings.JiraPassword);
+            jira.RestClient.RestSharpClient.Timeout = (int)TimeSpan.FromMinutes(5).TotalMilliseconds;
 
             var parameters = args;
             while (true)
@@ -81,6 +82,11 @@ namespace CcWorks
                         case "ticket":
                         case "ticketcheck":
                             await DuplicateTicketChecker.DoWork(settings.DuplicateTicketCommand, commandParameters, jira);
+                            break;
+
+                        case "clean":
+                        case "cleanup":
+                            await BacklogCleanupWorker.DoWork(settings.DuplicateTicketCommand, commandParameters, jira);
                             break;
 
                         case "exit":
