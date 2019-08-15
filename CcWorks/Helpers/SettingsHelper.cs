@@ -9,5 +9,12 @@ namespace CcWorks.Helpers
         {
             return commonSettings.Repos.SingleOrDefault(r => r.Name.Equals(repoName, StringComparison.OrdinalIgnoreCase));
         }
+
+        public static string GetMainBranch(RepoSettings repoSettings)
+        {
+            return string.IsNullOrWhiteSpace(repoSettings?.MainBranch)
+                ? "develop"
+                : repoSettings.MainBranch;
+        }
     }
 }

@@ -49,6 +49,21 @@ namespace CcWorks.Workers
                 repoName = Path.GetFileNameWithoutExtension(repoName);
             }
 
+            var repoSettings = SettingsHelper.GetRepoSettings(commonSettings, repoName);
+            var mainBranch = SettingsHelper.GetMainBranch(repoSettings);
+            var currentBranch = GitHelper.GetCurrentBranch(repoName, commonSettings.ProjectsPath);
+            if (currentBranch != mainBranch)
+            {
+                ConsoleHelper.WriteColor(
+                    $"Your current branch is {currentBranch}, but usually it should be {mainBranch}. Do you really want to create new ticket from this branch? [y/N]: ",
+                    ConsoleColor.Yellow);
+                var answer = Console.ReadLine() ?? string.Empty;
+                if (!answer.Equals("y", StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+
             Console.Write("Create new issue... ");
             var newIssue = jira.CreateIssue("CC");
             newIssue.Summary = longTicketType + brpQualifier + " :: " + GetFileName(fileParts.First().FileName, commonSettings.ProjectsPath, repoName);
@@ -57,7 +72,16 @@ namespace CcWorks.Workers
             newIssue.Priority = issue.Priority;
             newIssue.Labels.AddRange(issue.Labels);
 
-            foreach (var field in settings.FieldsToCopy)
+            const string formattingLabel = "Formatting";
+            if (brpQualifier == " - Formatting" && !issue.Labels.Contains(formattingLabel))
+            {
+                newIssue.Labels.Add(formattingLabel);
+            }
+
+            var scmBranch = GetScmBranchField(currentBranch, repoName, commonSettings);
+            newIssue.CustomFields.Add("scm_branch", scmBranch);
+
+            foreach (var field in settings.FieldsToCopy.Where(f => f != "scm_branch"))
             {
                 CopyCustomField(issue, newIssue, field);
             }
@@ -74,6 +98,17 @@ namespace CcWorks.Workers
             }
 
             Console.WriteLine($"New issue: https://jira.devfactory.com/browse/{newIssue.Key}");
+        }
+
+        private static string GetScmBranchField(string currentBranch, string repoName, CommonSettings commonSettings)
+        {
+            var commitData = GitHelper.Exec("git rev-parse HEAD", repoName, commonSettings.ProjectsPath);
+            if (!commitData.Any() || commitData.Count > 1)
+            {
+                throw new CcException("Current commit hash not found");
+            }
+
+            return $"Branch: {currentBranch}\n\nCommit Hash: {commitData.First()}";
         }
 
         private static List<FilePart> ReadFileParts(string longTicketType)
@@ -184,6 +219,12 @@ h4. Code
             }
 
             var content = string.Join("\r\n", contentLines);
+
+            const int maxDescriptionSize = 50 * 1024;
+            if (content.Length > maxDescriptionSize)
+            {
+                content = content.Substring(0, maxDescriptionSize);
+            }
 
             var startColumn = content.TakeWhile(c => c == ' ' || c == '\t').Count();
 

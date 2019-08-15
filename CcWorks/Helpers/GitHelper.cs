@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using CcWorks.Exceptions;
 
 namespace CcWorks.Helpers
@@ -61,6 +62,17 @@ namespace CcWorks.Helpers
 
                 return outputList;
             }
+        }
+
+        public static string GetCurrentBranch(string repoName, string projectsPath)
+        {
+            var result = Exec("git rev-parse --abbrev-ref HEAD", repoName, projectsPath);
+            if (!result.Any() || result.Count > 1)
+            {
+                throw new CcException("Current git branch not found");
+            }
+
+            return result.First();
         }
     }
 }

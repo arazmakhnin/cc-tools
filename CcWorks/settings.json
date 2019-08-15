@@ -61,9 +61,9 @@
     },
     "newCommand": {
         // Fields to be copied from source jira ticket
+        // Field "scm_branch" is filled automatically
         "fieldsToCopy": [
             "scm_url",
-            "scm_branch",
             "Programming Technology",
             "Company",
             "Software Product Name"

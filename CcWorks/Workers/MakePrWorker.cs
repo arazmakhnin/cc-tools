@@ -62,9 +62,7 @@ namespace CcWorks.Workers
                 ? "feature"
                 : repoSettings.BranchPrefix;
 
-            var mainBranch = string.IsNullOrWhiteSpace(repoSettings?.MainBranch)
-                ? "develop"
-                : repoSettings.MainBranch;
+            var mainBranch = SettingsHelper.GetMainBranch(repoSettings);
 
             var key = issue.Key.ToString();
             var ticketType = GetTicketType(issue);
@@ -90,11 +88,11 @@ namespace CcWorks.Workers
                     }
                 }
 
-                var result = GitHelper.Exec("git rev-parse --abbrev-ref HEAD", repoName, commonSettings.ProjectsPath);
-                if (!result.Any() || result.Count > 1 || result.First() != mainBranch)
+                var currentBranch = GitHelper.GetCurrentBranch(repoName, commonSettings.ProjectsPath);
+                if (currentBranch != mainBranch)
                 {
                     ConsoleHelper.WriteColor(
-                        $"Your current branch is {result.First()}, but usually it should be {mainBranch}. Do you really want to create new branch from this one? [y/N]: ",
+                        $"Your current branch is {currentBranch}, but usually it should be {mainBranch}. Do you really want to create new branch from this one? [y/N]: ",
                         ConsoleColor.Yellow);
                     var answer = Console.ReadLine() ?? string.Empty;
                     if (!answer.Equals("y", StringComparison.OrdinalIgnoreCase))
@@ -184,7 +182,7 @@ namespace CcWorks.Workers
                   createPullRequest(input:{
                     title:""[" + key + "] " + issue.Summary + @""", 
                     baseRefName: """ + mainBranch + @""", 
-                    body: ""# Links\r\nhttps://jira.devfactory.com/browse/" + key + @"\r\n\r\n# Changes\r\n- " + comment + @"\r\n\r\n" + fullNote + testCoverageMessage + @"# Review\r\n- Please insert QB sheet here"", 
+                    body: ""# Links\r\nhttps://jira.devfactory.com/browse/" + key + @"\r\n\r\n# Changes\r\n- " + comment + @"\r\n\r\n" + fullNote + testCoverageMessage + @""", 
                     headRefName: """ + branchPrefix + "/" + key + @""", 
                     repositoryId: """ + repoId + @"""
                   }){
@@ -279,13 +277,19 @@ namespace CcWorks.Workers
 
             while (true)
             {
+                if (string.IsNullOrWhiteSpace(comment))
+                {
+                    comment = parameters.Get("Comment: ");
+                    continue;
+                }
+            
                 if (settings.CommentAliases.ContainsKey(comment))
                 {
                     comment = settings.CommentAliases[comment];
                 }
                 else if (comment.Length <= 3)
                 {
-                    Console.Write($"Looks like you entered alias that isn't defined. Do you want to use \"{comment}\" as comment? [y/n]: ");
+                    Console.Write($"Looks like you entered alias that isn't defined. Do you want to use \"{comment}\" as a comment? [y/n]: ");
                     var y = Console.ReadLine() ?? string.Empty;
                     if (!y.Equals("y", StringComparison.OrdinalIgnoreCase))
                     {
