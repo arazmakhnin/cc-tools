@@ -488,5 +488,34 @@ namespace CcWorks.Tests.Solvers
     }
 }");
         }
+
+        [Test]
+        public async Task WithDoubleSlashes_ShouldReplaceStringWithoutChanges()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s = ""c:\\test\\path"";
+        var d = ""c:\\test\\path"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.FileText.ShouldBe(@"public class Sample
+{
+    private const string Ctestpath = ""c:\\test\\path"";
+    public void SampleMethod()
+    {
+        var s = Ctestpath;
+        var d = Ctestpath;
+    }
+}");
+        }
+
     }
 }
