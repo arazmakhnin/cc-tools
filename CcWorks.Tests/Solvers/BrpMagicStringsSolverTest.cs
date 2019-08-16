@@ -517,5 +517,53 @@ namespace CcWorks.Tests.Solvers
 }");
         }
 
+        [Test]
+        // https://github.com/trilogy-group/km-all-projects/pull/7546/files#diff-6add7eddf95a0d3aa955539f32e907d9L709
+        public async Task WithSpecialCharacters_ShouldReplaceStringWithoutChanges()
+        {
+            // arrange
+            var text = @"public class Sample
+{
+    public void SampleMethod()
+    {
+        var s1 = ""’"";
+        var d1 = ""’"";
+        var s2 = ""–"";
+        var d2 = ""–"";
+        var s3 = ""“"";
+        var d3 = ""“"";
+        var s4 = ""”"";
+        var d4 = ""”"";
+        var s5 = ""…"";
+        var d5 = ""…"";
+    }
+}";
+
+            // act
+            var result = await BrpMagicStringsSolver.Solve(text);
+
+            // assert
+            result.FileText.ShouldBe(@"public class Sample
+{
+    private const string C1 = ""’"";
+    private const string C2 = ""–"";
+    private const string C3 = ""“"";
+    private const string C4 = ""”"";
+    private const string C5 = ""…"";
+    public void SampleMethod()
+    {
+        var s1 = C1;
+        var d1 = C1;
+        var s2 = C2;
+        var d2 = C2;
+        var s3 = C3;
+        var d3 = C3;
+        var s4 = C4;
+        var d4 = C4;
+        var s5 = C5;
+        var d5 = C5;
+    }
+}");
+        }
     }
 }
