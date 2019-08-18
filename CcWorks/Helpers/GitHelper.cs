@@ -8,9 +8,9 @@ namespace CcWorks.Helpers
 {
     public static class GitHelper
     {
-        public static IReadOnlyCollection<string> Exec(string command, string repoName, string projectsPath)
+        public static IReadOnlyCollection<string> Exec(string command, RepoSettings repoSettings, string projectsPath)
         {
-            var projectPath = Path.Combine(projectsPath, repoName);
+            var projectPath = Path.Combine(projectsPath, repoSettings.ActualFolderName);
             if (!Directory.Exists(projectPath))
             {
                 throw new CcException($"Path \"{projectPath}\" not found");
@@ -64,9 +64,9 @@ namespace CcWorks.Helpers
             }
         }
 
-        public static string GetCurrentBranch(string repoName, string projectsPath)
+        public static string GetCurrentBranch(RepoSettings repoSettings, string projectsPath)
         {
-            var result = Exec("git rev-parse --abbrev-ref HEAD", repoName, projectsPath);
+            var result = Exec("git rev-parse --abbrev-ref HEAD", repoSettings, projectsPath);
             if (!result.Any() || result.Count > 1)
             {
                 throw new CcException("Current git branch not found");

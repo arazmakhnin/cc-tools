@@ -32,7 +32,10 @@
                 "branchPrefix": "cleanup",
 
                 // Main working branch for this repo. Default value is "develop"
-                "mainBranch": "develop"
+                "mainBranch": "develop",
+
+                // Folder name for this repo. If not defined or empty, key "name" will be use instead.
+                "folderName": "GFI-MA"
             }
         ]        
     },

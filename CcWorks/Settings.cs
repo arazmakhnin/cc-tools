@@ -29,6 +29,9 @@ namespace CcWorks
         public string Pca { get; set; }
         public string BranchPrefix { get; set; }
         public string MainBranch { get; set; }
+        public string FolderName { get; set; }
+
+        public string ActualFolderName => string.IsNullOrWhiteSpace(FolderName) ? Name : FolderName;
     }
 
     public class FpCommandSettings

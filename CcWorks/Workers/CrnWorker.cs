@@ -30,9 +30,9 @@ namespace CcWorks.Workers
 
             Console.WriteLine("done");
 
-            Console.Write($"Checkout branch {branchName}... ");
-            GitHelper.Exec($"git checkout {branchName}", repoName, commonSettings.ProjectsPath);
-            Console.WriteLine("done");
+            //Console.Write($"Checkout branch {branchName}... ");
+            //GitHelper.Exec($"git checkout {branchName}", repoName, commonSettings.ProjectsPath);
+            //Console.WriteLine("done");
         }
     }
 }

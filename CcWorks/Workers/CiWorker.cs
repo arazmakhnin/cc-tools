@@ -13,9 +13,11 @@ namespace CcWorks.Workers
             var prUrl = parameters.Get("PR url: ");
             GithubHelper.ParsePrUrl(prUrl, out var repoName, out var prNumber);
 
+            var repoSettings = SettingsHelper.GetRepoSettings(commonSettings, repoName);
+
             Console.Write("Getting PR... ");
             var query = @"query {
-                repository(owner:""trilogy-group"", name:""" + repoName + @"""){
+                repository(owner:""trilogy-group"", name:""" + repoSettings.Name + @"""){
                     pullRequest(number: " + prNumber + @"){
                         headRefName
                     }
@@ -28,13 +30,15 @@ namespace CcWorks.Workers
             Console.WriteLine("done");
 
             Console.Write($"Push CI trigger to {branchName}... ");
-            GitHelper.Exec($"git checkout {branchName} && git commit --allow-empty -m \"Trigger CI Job\" && git push", repoName, commonSettings.ProjectsPath);
+            GitHelper.Exec(
+                $"git checkout {branchName} && git commit --allow-empty -m \"Trigger CI Job\" && git push", 
+                repoSettings, 
+                commonSettings.ProjectsPath);
             Console.WriteLine("done");
 
-            var repoSettings = SettingsHelper.GetRepoSettings(commonSettings, repoName);
-            var mainBranch = string.IsNullOrWhiteSpace(repoSettings?.MainBranch) ? "develop" : repoSettings.MainBranch;
+            var mainBranch = SettingsHelper.GetMainBranch(repoSettings);
             Console.Write($"Checkout {mainBranch}... ");
-            GitHelper.Exec($"git checkout {mainBranch}", repoName, commonSettings.ProjectsPath);
+            GitHelper.Exec($"git checkout {mainBranch}", repoSettings, commonSettings.ProjectsPath);
             Console.WriteLine("done");
         }
     }

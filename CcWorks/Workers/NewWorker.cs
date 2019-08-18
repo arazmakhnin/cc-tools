@@ -51,7 +51,7 @@ namespace CcWorks.Workers
 
             var repoSettings = SettingsHelper.GetRepoSettings(commonSettings, repoName);
             var mainBranch = SettingsHelper.GetMainBranch(repoSettings);
-            var currentBranch = GitHelper.GetCurrentBranch(repoName, commonSettings.ProjectsPath);
+            var currentBranch = GitHelper.GetCurrentBranch(repoSettings, commonSettings.ProjectsPath);
             if (currentBranch != mainBranch)
             {
                 ConsoleHelper.WriteColor(
@@ -66,7 +66,7 @@ namespace CcWorks.Workers
 
             Console.Write("Create new issue... ");
             var newIssue = jira.CreateIssue("CC");
-            newIssue.Summary = longTicketType + brpQualifier + " :: " + GetFileName(fileParts.First().FileName, commonSettings.ProjectsPath, repoName);
+            newIssue.Summary = longTicketType + brpQualifier + " :: " + GetFileName(fileParts.First().FileName, commonSettings.ProjectsPath, repoSettings.ActualFolderName);
             newIssue.Type = longTicketType;
             newIssue.Assignee = commonSettings.JiraUserName;
             newIssue.Priority = issue.Priority;
@@ -78,7 +78,7 @@ namespace CcWorks.Workers
                 newIssue.Labels.Add(formattingLabel);
             }
 
-            var scmBranch = GetScmBranchField(currentBranch, repoName, commonSettings);
+            var scmBranch = GetScmBranchField(currentBranch, repoSettings, commonSettings);
             newIssue.CustomFields.Add("scm_branch", scmBranch);
 
             foreach (var field in settings.FieldsToCopy.Where(f => f != "scm_branch"))
@@ -86,7 +86,7 @@ namespace CcWorks.Workers
                 CopyCustomField(issue, newIssue, field);
             }
             
-            newIssue.Description = GetDescription(fileParts, commonSettings.ProjectsPath, repoName);
+            newIssue.Description = GetDescription(fileParts, commonSettings.ProjectsPath, repoSettings.ActualFolderName);
             await newIssue.SaveChangesAsync();
             Console.WriteLine("done");
 
@@ -100,9 +100,9 @@ namespace CcWorks.Workers
             Console.WriteLine($"New issue: https://jira.devfactory.com/browse/{newIssue.Key}");
         }
 
-        private static string GetScmBranchField(string currentBranch, string repoName, CommonSettings commonSettings)
+        private static string GetScmBranchField(string currentBranch, RepoSettings repoSettings, CommonSettings commonSettings)
         {
-            var commitData = GitHelper.Exec("git rev-parse HEAD", repoName, commonSettings.ProjectsPath);
+            var commitData = GitHelper.Exec("git rev-parse HEAD", repoSettings, commonSettings.ProjectsPath);
             if (!commitData.Any() || commitData.Count > 1)
             {
                 throw new CcException("Current commit hash not found");
@@ -187,7 +187,7 @@ namespace CcWorks.Workers
             newIssue.CustomFields.Add(fieldName, issue.CustomFields[fieldName]?.Values);
         }
 
-        private static string GetDescription(IReadOnlyCollection<FilePart> fileParts, string projectsPath, string repoName)
+        private static string GetDescription(IReadOnlyCollection<FilePart> fileParts, string projectsPath, string repoFolder)
         {
             //            const string template = @"h4. Issue Locations 
             //{noformat} [
@@ -231,7 +231,7 @@ h4. Code
             var strFileParts = JsonConvert.SerializeObject(fileParts.Select(p => new
             {
                 endLine = p.EndLine,
-                fileName = GetFileName(p.FileName, projectsPath, repoName),
+                fileName = GetFileName(p.FileName, projectsPath, repoFolder),
                 startColumn = startColumn,
                 startLine = p.StartLine
             }), Formatting.Indented);
@@ -290,7 +290,7 @@ h4. Code
             }
         }
 
-        private static string GetFileName(string fileName, string projectsPath, string repoName)
+        private static string GetFileName(string fileName, string projectsPath, string repoFolder)
         {
             if (!fileName.StartsWith(projectsPath, StringComparison.CurrentCultureIgnoreCase))
             {
@@ -298,12 +298,12 @@ h4. Code
             }
 
             var cutFileName = fileName.Substring(projectsPath.Length).TrimStart('/', '\\');
-            if (!cutFileName.StartsWith(repoName, StringComparison.CurrentCultureIgnoreCase))
+            if (!cutFileName.StartsWith(repoFolder, StringComparison.CurrentCultureIgnoreCase))
             {
-                throw new CcException($"File isn't placed in \"{repoName}\" directory");
+                throw new CcException($"File isn't placed in \"{repoFolder}\" directory");
             }
 
-            return cutFileName.Substring(repoName.Length).TrimStart('/', '\\').Replace('\\', '/');
+            return cutFileName.Substring(repoFolder.Length).TrimStart('/', '\\').Replace('\\', '/');
         }
     }
 

@@ -69,8 +69,8 @@ namespace CcWorks.Workers
 
             if (!isOnlyPr)
             {
-                var stagedFiles = GitHelper.Exec("git diff --name-only --cached", repoName, commonSettings.ProjectsPath);
-                var changedFiles = GitHelper.Exec("git diff --name-only", repoName, commonSettings.ProjectsPath);
+                var stagedFiles = GitHelper.Exec("git diff --name-only --cached", repoSettings, commonSettings.ProjectsPath);
+                var changedFiles = GitHelper.Exec("git diff --name-only", repoSettings, commonSettings.ProjectsPath);
 
                 if (!stagedFiles.Any() && !changedFiles.Any())
                 {
@@ -88,7 +88,7 @@ namespace CcWorks.Workers
                     }
                 }
 
-                var currentBranch = GitHelper.GetCurrentBranch(repoName, commonSettings.ProjectsPath);
+                var currentBranch = GitHelper.GetCurrentBranch(repoSettings, commonSettings.ProjectsPath);
                 if (currentBranch != mainBranch)
                 {
                     ConsoleHelper.WriteColor(
@@ -145,7 +145,7 @@ namespace CcWorks.Workers
                 var pushCommand = $"git push --set-upstream origin {branchPrefix}/{key}";
                 GitHelper.Exec(
                     $"{createBranchCommand} && {commitCommand} && {pushCommand}",
-                    repoName,
+                    repoSettings,
                     commonSettings.ProjectsPath);
 
                 Console.WriteLine("done");
@@ -153,7 +153,7 @@ namespace CcWorks.Workers
                 Console.Write($"Checkout {mainBranch}... ");
                 try
                 {
-                    GitHelper.Exec($"git checkout {mainBranch} && git pull", repoName, commonSettings.ProjectsPath);
+                    GitHelper.Exec($"git checkout {mainBranch} && git pull", repoSettings, commonSettings.ProjectsPath);
                     Console.WriteLine("done");
                 }
                 catch (GitException)

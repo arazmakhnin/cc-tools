@@ -28,14 +28,17 @@ namespace CcWorks.Workers
             Console.WriteLine("done");
 
             var repoSettings = SettingsHelper.GetRepoSettings(commonSettings, repoName);
-            var mainBranch = string.IsNullOrWhiteSpace(repoSettings?.MainBranch) ? "develop" : repoSettings.MainBranch;
+            var mainBranch = SettingsHelper.GetMainBranch(repoSettings);
 
             Console.Write($"Rebase {mainBranch} to {branchName}... ");
-            GitHelper.Exec($"git checkout {mainBranch} && git pull && git checkout {branchName} && git pull && git merge develop --no-edit && git push", repoName, commonSettings.ProjectsPath);
+            GitHelper.Exec(
+                $"git checkout {mainBranch} && git pull && git checkout {branchName} && git pull && git merge develop --no-edit && git push", 
+                repoSettings, 
+                commonSettings.ProjectsPath);
             Console.WriteLine("done");
 
             Console.Write($"Checkout {mainBranch}... ");
-            GitHelper.Exec($"git checkout {mainBranch}", repoName, commonSettings.ProjectsPath);
+            GitHelper.Exec($"git checkout {mainBranch}", repoSettings, commonSettings.ProjectsPath);
             Console.WriteLine("done");
         }
     }
