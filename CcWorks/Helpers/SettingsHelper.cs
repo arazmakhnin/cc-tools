@@ -7,7 +7,11 @@ namespace CcWorks.Helpers
     {
         public static RepoSettings GetRepoSettings(CommonSettings commonSettings, string repoName)
         {
-            return commonSettings.Repos.SingleOrDefault(r => r.Name.Equals(repoName, StringComparison.OrdinalIgnoreCase));
+            return commonSettings.Repos.SingleOrDefault(r => r.Name.Equals(repoName, StringComparison.OrdinalIgnoreCase))
+                ?? new RepoSettings
+                {
+                    Name = repoName
+                };
         }
 
         public static string GetMainBranch(RepoSettings repoSettings)
