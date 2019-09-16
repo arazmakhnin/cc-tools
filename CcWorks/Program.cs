@@ -51,7 +51,7 @@ namespace CcWorks
                             break;
 
                         case "new":
-                            await NewWorker.DoWork(settings.NewCommand, settings.CommonSettings, commandParameters, jira);
+                            await NewWorker.DoWork(settings.NewCommand, settings, commandParameters, jira);
                             break;
 
                         case "pr":
@@ -76,6 +76,11 @@ namespace CcWorks
 
                         case "solve":
                             await SolveWorker.DoWork(settings.CommonSettings, commandParameters, jira);
+                            break;
+
+                        case "ticket":
+                        case "ticketcheck":
+                            await DuplicateTicketChecker.DoWork(settings.DuplicateTicketCommand, commandParameters, jira);
                             break;
 
                         case "exit":

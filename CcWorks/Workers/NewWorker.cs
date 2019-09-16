@@ -13,8 +13,11 @@ namespace CcWorks.Workers
 {
     public static class NewWorker
     {
-        public static async Task DoWork(NewCommandSettings settings, CommonSettings commonSettings, Parameters parameters, Jira jira)
+        public static async Task DoWork(NewCommandSettings settings, Settings allSettings, Parameters parameters, Jira jira)
         {
+            var commonSettings = allSettings.CommonSettings;
+            var duplicateTicketSettings = allSettings.DuplicateTicketCommand;
+
             if (parameters.Any())
             {
                 throw new CcException("Command \"new\" doesn't support parameters yet");
@@ -98,6 +101,32 @@ namespace CcWorks.Workers
             }
 
             Console.WriteLine($"New issue: https://jira.devfactory.com/browse/{newIssue.Key}");
+
+            var checkDuplicateTicket = duplicateTicketSettings.CheckDuplicateForNew.HasValue
+                && duplicateTicketSettings.CheckDuplicateForNew.Value;
+
+            if (checkDuplicateTicket)
+            {
+                var checkSameTypeOnly = duplicateTicketSettings.CheckSameTypeOnly.HasValue && duplicateTicketSettings.CheckSameTypeOnly.Value;
+                var duplicates = await DuplicateTicketChecker.GetDuplicatedTickets(
+                    newIssue.Key.Value,
+                    checkSameTypeOnly,
+                    jira,
+                    duplicateTicketSettings);
+
+                if (duplicates.Any())
+                {
+                    ConsoleHelper.WriteColor(
+                        $"There are open tickets that overlap some of the code for the ticket you just created,\n"
+                        + $" please look into them to avoid conflicts and working on duplicated tickets.\n\n",
+                        ConsoleColor.DarkYellow);
+
+                    duplicates.ForEach(
+                        dupIssue => ConsoleHelper.WriteColor(
+                            $"https://jira.devfactory.com/browse/{dupIssue.Key}\n",
+                            ConsoleColor.Yellow));
+                }
+            }
         }
 
         private static string GetScmBranchField(string currentBranch, RepoSettings repoSettings, CommonSettings commonSettings)

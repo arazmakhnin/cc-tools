@@ -12,6 +12,7 @@ namespace CcWorks
         public CiCommandSettings CiCommand { get; set; }
         public ReviewCommandSettings ReviewCommand { get; set; }
         public RebaseCommandSettings RebaseCommand { get; set; }
+        public DuplicateTicketCommandSettings DuplicateTicketCommand { get; set; }
     }
 
     public class CommonSettings
@@ -68,5 +69,12 @@ namespace CcWorks
 
     public class RebaseCommandSettings
     {
+    }
+
+    public class DuplicateTicketCommandSettings
+    {
+        public bool? CheckSameTypeOnly { get; set; }
+        public bool? CheckDuplicateForNew { get; set; }
+        public int LineOffset { get; set; } = 0;
     }
 }
