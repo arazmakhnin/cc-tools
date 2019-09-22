@@ -11,12 +11,70 @@ namespace CcWorks.Workers
 {
     public static class ReviewWorker
     {
+        private const string QueryGetPRDetailsFormat = @"query {{
+                repository(owner:""trilogy-group"", name:""{0}""){{
+                    pullRequest(number: {1}){{
+                        id,
+                        bodyHTML,
+                        assignees(first: 20) {{ nodes {{ id }} }}
+                        labels(last: 20) {{ nodes {{ 
+                                                id
+                                                name
+                                            }}
+                                        }}
+                                    }}
+                                }}
+                            }}";
+
+        private const string QueryGetAssignedLabelsFormat = @"query{{
+                    repository(owner: ""{0}"", name: ""{1}""){{
+                        pullRequest(number: {2}){{
+                            labels(last: 20){{
+                                nodes {{
+                                    id
+                                    name
+                                }}
+                            }}
+                        }}
+                    }}
+                }}";
+
+        private const string QueryGetRepoLabelsFormat = @"query{{
+            repository(owner: ""{0}"", name: ""{1}""){{
+                labels(first: 20){{
+                    nodes{{
+                        id
+                        name
+                    }}
+                }}
+            }}
+        }}";
+
+        private const string MutationAddAssigneePRFormat = @"mutation
+                    {{
+                      addAssigneesToAssignable(input: {{
+                        assignableId: ""{0}"", 
+                        assigneeIds: [""{1}""]}}) {{ clientMutationId }}}}";
+
+        private const string MutationClearLabelsPRFormat = @"mutation{{
+                        clearLabelsFromLabelable(
+                        input:{{labelableId:""{0}""}}) {{clientMutationId}}
+                        }}";
+
+        private const string MutationAddLabelsFormat = @"mutation{{
+                        addLabelsToLabelable(
+                        input:{{labelableId: ""{0}"",labelIds: ""{1}""}}) {{clientMutationId}}
+                        }}";
+
+        private const string LabelCRNReviewCompleted = "CRN Review Completed";
+
         public static async Task DoWork(ReviewCommandSettings settings, CommonSettings commonSettings, Parameters parameters, Jira jira)
         {
             var prUrl = parameters.Get("PR url: ");
             GithubHelper.ParsePrUrl(prUrl, out var repoName, out var prNumber);
 
             var timeSpent = parameters.Get("Time spent: ");
+
             if (string.IsNullOrWhiteSpace(timeSpent) || timeSpent.Trim() == "0")
             {
                 throw new CcException("Time spent should not be empty");
@@ -29,25 +87,15 @@ namespace CcWorks.Workers
             //}
 
             Console.Write("Getting PR... ");
-            var query = @"query {
-                repository(owner:""trilogy-group"", name:""" + repoName + @"""){
-                    pullRequest(number: " + prNumber + @"){
-                        id,
-                        bodyHTML,
-                        assignees(first: 20) { nodes { id } }
-                    }
-                }  
-            }";
-
-            var prInfo = await GithubHelper.Query(query, commonSettings.GithubToken);
+            var prDetails = string.Format(QueryGetPRDetailsFormat, repoName, prNumber);
+            var prInfo = await GithubHelper.Query(prDetails, commonSettings.GithubToken);
             var jPullRequest = prInfo["repository"]["pullRequest"];
             var bodyHtml = jPullRequest["bodyHTML"].Value<string>();
-
             Console.WriteLine("done");
-
             Console.Write("Getting ticket... ");
             var regex = new Regex(@"https://jira\.devfactory\.com/browse/(CC-\d+)");
             var m = regex.Match(bodyHtml);
+
             if (!m.Success)
             {
                 throw new CcException("Ticket not found");
@@ -62,6 +110,7 @@ namespace CcWorks.Workers
             }
 
             var repoSettings = SettingsHelper.GetRepoSettings(commonSettings, repoName);
+
             if (string.IsNullOrWhiteSpace(repoSettings?.Pca))
             {
                 throw new CcException($"PCA isn't defined for repo \"{repoName}\" in settings.json");
@@ -82,8 +131,8 @@ namespace CcWorks.Workers
 
                 var currentUserIdJson = await GithubHelper.Query("query {viewer {id}}", commonSettings.GithubToken);
                 var userId = currentUserIdJson["viewer"]["id"].Value<string>();
-
                 var nodes = jPullRequest["assignees"]["nodes"] as JArray ?? new JArray();
+
                 foreach (var node in nodes)
                 {
                     if (node["id"].Value<string>() == userId)
@@ -94,22 +143,64 @@ namespace CcWorks.Workers
                 }
 
                 var prId = jPullRequest["id"].Value<string>();
-                var assignPrMutation = @"mutation
-                    {
-                      addAssigneesToAssignable(input: {
-                        assignableId: """ + prId + @""", 
-                        assigneeIds: [""" + userId + @"""]}) { clientMutationId }}";
-
+                var assignPrMutation = string.Format(MutationAddAssigneePRFormat, prId, userId);
                 await GithubHelper.Query(assignPrMutation, commonSettings.GithubToken);
+                Console.WriteLine("done");
+                await AssignLabelToPR(commonSettings, repoName, prNumber, prId);
+            }
+        }
 
+        private static async Task AssignLabelToPR(CommonSettings commonSettings, string repoName, string prNumber, string prId)
+        {
+            Console.Write("Get CRN review label id...");
+
+            var getRepoLabels = string.Format(QueryGetRepoLabelsFormat, "trilogy-group", repoName);
+            var repoLabels = await GithubHelper.Query(getRepoLabels, commonSettings.GithubToken);
+            var repoLabelsNode = repoLabels["repository"]["labels"]["nodes"] as JArray;
+
+            if (repoLabelsNode == null)
+            {
+                Console.Write("No labels found in repo");
+                return;
+            }
+
+            var crnReviewLabelId = repoLabelsNode.First(
+                    x => x["name"].Value<string>().Equals(LabelCRNReviewCompleted, StringComparison.OrdinalIgnoreCase))
+                ["id"]
+                .Value<string>();
+
+            Console.WriteLine("done");
+
+            Console.Write("Get PR Assigned Labels...");
+            var getAssignedLabelsQuery = string.Format(QueryGetAssignedLabelsFormat, "trilogy-group", repoName, prNumber);
+            var assignedLabels = await GithubHelper.Query(getAssignedLabelsQuery, commonSettings.GithubToken);
+            var labelNodes = assignedLabels["repository"]["pullRequest"]["labels"]["nodes"] as JArray ?? new JArray();
+            Console.WriteLine("done");
+
+            if (labelNodes.Any())
+            {
+                if (labelNodes.Any(x => x["id"].Value<string>().Equals(crnReviewLabelId)))
+                {
+                    Console.Write($"{LabelCRNReviewCompleted} already assigned");
+                    Console.WriteLine("done");
+                    return;
+                }
+
+                Console.Write("Clear labels...");
+                var mutationClearLabels = string.Format(MutationClearLabelsPRFormat, prId);
+                await GithubHelper.Query(mutationClearLabels, commonSettings.GithubToken);
                 Console.WriteLine("done");
             }
+
+            Console.Write("Add label...");
+            var mutationAddLabels = string.Format(MutationAddLabelsFormat, prId, crnReviewLabelId);
+            await GithubHelper.Query(mutationAddLabels, commonSettings.GithubToken);
+            Console.WriteLine("done");
         }
 
         private static void SetCustomField(Issue issue, string name, string value)
         {
-            var field = issue.CustomFields.SingleOrDefault(f => f.Name == name);
-            if (field == null)
+            if (issue.CustomFields.SingleOrDefault(f => f.Name == name) == null)
             {
                 issue.CustomFields.Add(name, value);
             }
