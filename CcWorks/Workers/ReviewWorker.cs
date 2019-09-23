@@ -26,19 +26,6 @@ namespace CcWorks.Workers
                                 }}
                             }}";
 
-        private const string QueryGetAssignedLabelsFormat = @"query{{
-                    repository(owner: ""{0}"", name: ""{1}""){{
-                        pullRequest(number: {2}){{
-                            labels(last: 20){{
-                                nodes {{
-                                    id
-                                    name
-                                }}
-                            }}
-                        }}
-                    }}
-                }}";
-
         private const string QueryGetRepoLabelsFormat = @"query{{
             repository(owner: ""{0}"", name: ""{1}""){{
                 labels(first: 20){{
@@ -110,7 +97,7 @@ namespace CcWorks.Workers
             {
                 if (issueStatus.Equals("Ready for review", StringComparison.OrdinalIgnoreCase))
                 {
-                    await AssignLabelToPR(commonSettings, repoName, prNumber, jPullRequest["id"].Value<string>());
+                    await AssignLabelToPR(commonSettings, repoName, jPullRequest);
                 }
 
                 throw new CcException("Ticket should be in \"In progress\" state");
@@ -151,17 +138,18 @@ namespace CcWorks.Workers
                     Console.WriteLine("done");
                 }
 
-                await AssignLabelToPR(commonSettings, repoName, prNumber, jPullRequest["id"].Value<string>());
+                await AssignLabelToPR(commonSettings, repoName, jPullRequest);
             }
         }
 
-        private static async Task AssignLabelToPR(CommonSettings commonSettings, string repoName, string prNumber, string prId)
+        private static async Task AssignLabelToPR(CommonSettings commonSettings, string repoName, JToken jPullRequest)
         {
-            Console.Write("Get CRN review label id...");
+            Console.Write("Get CRN review label id... ");
 
             var getRepoLabels = string.Format(QueryGetRepoLabelsFormat, "trilogy-group", repoName);
             var repoLabels = await GithubHelper.Query(getRepoLabels, commonSettings.GithubToken);
             var repoLabelsNode = repoLabels["repository"]["labels"]["nodes"] as JArray;
+            var prId = jPullRequest["id"].Value<string>();
 
             if (repoLabelsNode == null)
             {
@@ -176,28 +164,26 @@ namespace CcWorks.Workers
 
             Console.WriteLine("done");
 
-            Console.Write("Get PR Assigned Labels...");
-            var getAssignedLabelsQuery = string.Format(QueryGetAssignedLabelsFormat, "trilogy-group", repoName, prNumber);
-            var assignedLabels = await GithubHelper.Query(getAssignedLabelsQuery, commonSettings.GithubToken);
-            var labelNodes = assignedLabels["repository"]["pullRequest"]["labels"]["nodes"] as JArray ?? new JArray();
+            Console.Write("Get PR Assigned Labels... ");
+            var labelNodes = jPullRequest["labels"]["nodes"] as JArray ?? new JArray();
             Console.WriteLine("done");
 
             if (labelNodes.Any())
             {
                 if (labelNodes.Any(x => x["id"].Value<string>().Equals(crnReviewLabelId)))
                 {
-                    Console.Write($"{LabelCRNReviewCompleted} already assigned");
+                    Console.Write($@"""{LabelCRNReviewCompleted}"" already assigned... ");
                     Console.WriteLine("done");
                     return;
                 }
 
-                Console.Write("Clear labels...");
+                Console.Write("Clear labels... ");
                 var mutationClearLabels = string.Format(MutationClearLabelsPRFormat, prId);
                 await GithubHelper.Query(mutationClearLabels, commonSettings.GithubToken);
                 Console.WriteLine("done");
             }
 
-            Console.Write("Add label...");
+            Console.Write("Add label... ");
             var mutationAddLabels = string.Format(MutationAddLabelsFormat, prId, crnReviewLabelId);
             await GithubHelper.Query(mutationAddLabels, commonSettings.GithubToken);
             Console.WriteLine("done");
