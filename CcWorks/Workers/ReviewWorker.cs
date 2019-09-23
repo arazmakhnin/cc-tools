@@ -104,8 +104,15 @@ namespace CcWorks.Workers
             var issue = await jira.Issues.GetIssueAsync(m.Groups[1].Value);
             Console.WriteLine("done");
 
-            if (!issue.Status.ToString().Equals("In progress", StringComparison.InvariantCultureIgnoreCase))
+            var issueStatus = issue.Status.ToString();
+
+            if (!issueStatus.Equals("In progress", StringComparison.InvariantCultureIgnoreCase))
             {
+                if (issueStatus.Equals("Ready for review", StringComparison.OrdinalIgnoreCase))
+                {
+                    await AssignLabelToPR(commonSettings, repoName, prNumber, jPullRequest["id"].Value<string>());
+                }
+
                 throw new CcException("Ticket should be in \"In progress\" state");
             }
 
@@ -133,20 +140,18 @@ namespace CcWorks.Workers
                 var userId = currentUserIdJson["viewer"]["id"].Value<string>();
                 var nodes = jPullRequest["assignees"]["nodes"] as JArray ?? new JArray();
 
-                foreach (var node in nodes)
+                if (nodes.Any(node => node["id"].Value<string>() == userId))
                 {
-                    if (node["id"].Value<string>() == userId)
-                    {
-                        Console.WriteLine("already assigned");
-                        return;
-                    }
+                    Console.WriteLine("already assigned");
+                }
+                else
+                {
+                    var assignPrMutation = string.Format(MutationAddAssigneePRFormat, jPullRequest["id"].Value<string>(), userId);
+                    await GithubHelper.Query(assignPrMutation, commonSettings.GithubToken);
+                    Console.WriteLine("done");
                 }
 
-                var prId = jPullRequest["id"].Value<string>();
-                var assignPrMutation = string.Format(MutationAddAssigneePRFormat, prId, userId);
-                await GithubHelper.Query(assignPrMutation, commonSettings.GithubToken);
-                Console.WriteLine("done");
-                await AssignLabelToPR(commonSettings, repoName, prNumber, prId);
+                await AssignLabelToPR(commonSettings, repoName, prNumber, jPullRequest["id"].Value<string>());
             }
         }
 
