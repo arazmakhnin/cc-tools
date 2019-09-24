@@ -64,6 +64,8 @@ namespace CcWorks
     public class ReviewCommandSettings
     {
         public bool AssignPr { get; set; }
+        public bool AssignReviewLabel { get; set; }
+        public string ReviewLabelName { get; set; }
     }
 
     public class RebaseCommandSettings

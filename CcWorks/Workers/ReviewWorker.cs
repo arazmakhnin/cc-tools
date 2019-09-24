@@ -53,8 +53,6 @@ namespace CcWorks.Workers
                         input:{{labelableId: ""{0}"",labelIds: ""{1}""}}) {{clientMutationId}}
                         }}";
 
-        private const string LabelCRNReviewCompleted = "CRN Review Completed";
-
         public static async Task DoWork(ReviewCommandSettings settings, CommonSettings commonSettings, Parameters parameters, Jira jira)
         {
             var prUrl = parameters.Get("PR url: ");
@@ -95,9 +93,9 @@ namespace CcWorks.Workers
 
             if (!issueStatus.Equals("In progress", StringComparison.InvariantCultureIgnoreCase))
             {
-                if (issueStatus.Equals("Ready for review", StringComparison.OrdinalIgnoreCase))
+                if (issueStatus.Equals("Ready for review", StringComparison.OrdinalIgnoreCase) && settings.AssignReviewLabel)
                 {
-                    await AssignLabelToPR(commonSettings, repoName, jPullRequest);
+                    await AssignLabelToPR(commonSettings, repoName, settings.ReviewLabelName, jPullRequest);
                 }
 
                 throw new CcException("Ticket should be in \"In progress\" state");
@@ -138,11 +136,14 @@ namespace CcWorks.Workers
                     Console.WriteLine("done");
                 }
 
-                await AssignLabelToPR(commonSettings, repoName, jPullRequest);
+                if (settings.AssignReviewLabel)
+                {
+                    await AssignLabelToPR(commonSettings, repoName, settings.ReviewLabelName, jPullRequest);
+                }
             }
         }
 
-        private static async Task AssignLabelToPR(CommonSettings commonSettings, string repoName, JToken jPullRequest)
+        private static async Task AssignLabelToPR(CommonSettings commonSettings, string repoName, string reviewLabel, JToken jPullRequest)
         {
             Console.Write("Get CRN review label id... ");
 
@@ -158,7 +159,7 @@ namespace CcWorks.Workers
             }
 
             var crnReviewLabelId = repoLabelsNode.First(
-                    x => x["name"].Value<string>().Equals(LabelCRNReviewCompleted, StringComparison.OrdinalIgnoreCase))
+                    x => x["name"].Value<string>().Equals(reviewLabel, StringComparison.OrdinalIgnoreCase))
                 ["id"]
                 .Value<string>();
 
@@ -172,7 +173,7 @@ namespace CcWorks.Workers
             {
                 if (labelNodes.Any(x => x["id"].Value<string>().Equals(crnReviewLabelId)))
                 {
-                    Console.Write($@"""{LabelCRNReviewCompleted}"" already assigned... ");
+                    Console.Write($@"""{reviewLabel}"" already assigned... ");
                     Console.WriteLine("done");
                     return;
                 }
