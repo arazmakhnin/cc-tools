@@ -27,6 +27,7 @@ namespace CcWorks.Workers
             }
 
             bool isOnlyPr = false;
+
             if (parameters.Any())
             {
                 var str = parameters.Get(string.Empty);
@@ -43,6 +44,7 @@ namespace CcWorks.Workers
             Console.Write("Get ticket... ");
             var issue = await jira.Issues.GetIssueAsync(issueKey);
             var repoUrl = issue.GetScmUrl();
+            
             if (string.IsNullOrWhiteSpace(repoUrl))
             {
                 Console.WriteLine("Can't get repo name");
@@ -52,6 +54,7 @@ namespace CcWorks.Workers
             Console.WriteLine("done");
 
             var repoName = repoUrl.Split('/')[4];
+
             if (repoName.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
             {
                 repoName = Path.GetFileNameWithoutExtension(repoName);
@@ -78,10 +81,12 @@ namespace CcWorks.Workers
                 }
 
                 var filesForCheck = stagedFiles.Any() ? stagedFiles : changedFiles;
+
                 if (filesForCheck.Any(f => f.EndsWith(".sln", StringComparison.OrdinalIgnoreCase)))
                 {
                     ConsoleHelper.WriteColor("You are going to commit changes in sln-file. Do you really want to do it? [y/N]: ", ConsoleColor.Yellow);
                     var answer = Console.ReadLine() ?? string.Empty;
+
                     if (!answer.Equals("y", StringComparison.OrdinalIgnoreCase))
                     {
                         return;
@@ -89,12 +94,14 @@ namespace CcWorks.Workers
                 }
 
                 var currentBranch = GitHelper.GetCurrentBranch(repoSettings, commonSettings.ProjectsPath);
+
                 if (currentBranch != mainBranch)
                 {
                     ConsoleHelper.WriteColor(
                         $"Your current branch is {currentBranch}, but usually it should be {mainBranch}. Do you really want to create new branch from this one? [y/N]: ",
                         ConsoleColor.Yellow);
                     var answer = Console.ReadLine() ?? string.Empty;
+
                     if (!answer.Equals("y", StringComparison.OrdinalIgnoreCase))
                     {
                         return;
@@ -102,6 +109,7 @@ namespace CcWorks.Workers
                 }
 
                 Console.Write("Set assignee... ");
+
                 if (issue.Assignee == null)
                 {
                     issue.Assignee = commonSettings.JiraUserName;
@@ -180,7 +188,7 @@ namespace CcWorks.Workers
             var mutation = @"mutation
                 {
                   createPullRequest(input:{
-                    title:""[" + key + "] " + issue.Summary + @""", 
+                    title:""[" + key + "] " + issue.Summary.Replace("\"", "\\\"") + @""", 
                     baseRefName: """ + mainBranch + @""", 
                     body: ""# Links\r\nhttps://jira.devfactory.com/browse/" + key + @"\r\n\r\n# Changes\r\n- " + comment + @"\r\n\r\n" + fullNote + testCoverageMessage + @""", 
                     headRefName: """ + branchPrefix + "/" + key + @""", 
