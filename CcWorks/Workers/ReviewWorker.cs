@@ -59,7 +59,6 @@ namespace CcWorks.Workers
             GithubHelper.ParsePrUrl(prUrl, out var repoName, out var prNumber);
 
             var timeSpent = parameters.Get("Time spent: ");
-
             if (string.IsNullOrWhiteSpace(timeSpent) || timeSpent.Trim() == "0")
             {
                 throw new CcException("Time spent should not be empty");
@@ -80,7 +79,6 @@ namespace CcWorks.Workers
             Console.Write("Getting ticket... ");
             var regex = new Regex(@"https://jira\.devfactory\.com/browse/(CC-\d+)");
             var m = regex.Match(bodyHtml);
-
             if (!m.Success)
             {
                 throw new CcException("Ticket not found");
@@ -90,19 +88,12 @@ namespace CcWorks.Workers
             Console.WriteLine("done");
 
             var issueStatus = issue.Status.ToString();
-
             if (!issueStatus.Equals("In progress", StringComparison.InvariantCultureIgnoreCase))
             {
-                if (issueStatus.Equals("Ready for review", StringComparison.OrdinalIgnoreCase) && settings.AssignReviewLabel)
-                {
-                    await AssignLabelToPR(commonSettings, repoName, settings.ReviewLabelName, jPullRequest);
-                }
-
                 throw new CcException("Ticket should be in \"In progress\" state");
             }
 
             var repoSettings = SettingsHelper.GetRepoSettings(commonSettings, repoName);
-
             if (string.IsNullOrWhiteSpace(repoSettings?.Pca))
             {
                 throw new CcException($"PCA isn't defined for repo \"{repoName}\" in settings.json");
@@ -135,11 +126,11 @@ namespace CcWorks.Workers
                     await GithubHelper.Query(assignPrMutation, commonSettings.GithubToken);
                     Console.WriteLine("done");
                 }
+            }
 
-                if (settings.AssignReviewLabel)
-                {
-                    await AssignLabelToPR(commonSettings, repoName, settings.ReviewLabelName, jPullRequest);
-                }
+            if (settings.AssignReviewLabel)
+            {
+                await AssignLabelToPR(commonSettings, repoName, settings.ReviewLabelName, jPullRequest);
             }
         }
 
@@ -158,6 +149,13 @@ namespace CcWorks.Workers
                 return;
             }
 
+            if (!repoLabelsNode.Any(
+                x => x["name"].Value<string>().Equals(reviewLabel, StringComparison.OrdinalIgnoreCase)))
+            {
+                Console.Write("No review label found in repo");
+                return;
+            }
+
             var crnReviewLabelId = repoLabelsNode.First(
                     x => x["name"].Value<string>().Equals(reviewLabel, StringComparison.OrdinalIgnoreCase))
                 ["id"]
@@ -165,9 +163,7 @@ namespace CcWorks.Workers
 
             Console.WriteLine("done");
 
-            Console.Write("Get PR Assigned Labels... ");
             var labelNodes = jPullRequest["labels"]["nodes"] as JArray ?? new JArray();
-            Console.WriteLine("done");
 
             if (labelNodes.Any())
             {
@@ -192,13 +188,13 @@ namespace CcWorks.Workers
 
         private static void SetCustomField(Issue issue, string name, string value)
         {
-            if (issue.CustomFields.SingleOrDefault(f => f.Name == name) == null)
+            if (issue.CustomFields.Any(customFieldValue => customFieldValue.Name == name))
             {
-                issue.CustomFields.Add(name, value);
+                issue[name] = value;
             }
             else
             {
-                issue[name] = value;
+                issue.CustomFields.Add(name, value);
             }
         }
     }
