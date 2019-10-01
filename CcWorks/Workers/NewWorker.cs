@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -312,13 +313,23 @@ h4. Code
             string projectsPath,
             RepoSettings repoSettings)
         {
-            return GitHelper.Exec(
-                $"git show {branchName}:{fileName}".Replace(
-                        Path.Combine(projectsPath, repoSettings.ActualFolderName) + "\\",
-                        string.Empty)
-                    .Replace("\\", "/"),
-                repoSettings,
-                projectsPath);
+            try
+            {
+                return GitHelper.Exec(
+                    $"git show {branchName}:{fileName}".Replace(
+                            Path.Combine(projectsPath, repoSettings.ActualFolderName) + "\\",
+                            string.Empty)
+                        .Replace("\\", "/"),
+                    repoSettings,
+                    projectsPath);
+            }
+            catch (Exception)
+            {
+                ConsoleHelper.WriteLineColor(
+                    "Error: Unable to fetch mainbranch content. Fetching current file content",
+                    ConsoleColor.Red);
+                return File.ReadAllLines(fileName);
+            }
         }
     }
 
