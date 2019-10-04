@@ -77,6 +77,8 @@
     },
     "reviewCommand": {
         // Assign PR to you after moving to review
-        "assignPr": true
+        "assignPr": true,
+        "assignReviewLabel": false,
+        "reviewLabelName":  "CRN Review Completed" 
     }
 }

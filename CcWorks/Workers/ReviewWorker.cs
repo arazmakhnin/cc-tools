@@ -11,6 +11,48 @@ namespace CcWorks.Workers
 {
     public static class ReviewWorker
     {
+        private const string QueryGetPRDetailsFormat = @"query {{
+                repository(owner:""trilogy-group"", name:""{0}""){{
+                    pullRequest(number: {1}){{
+                        id,
+                        bodyHTML,
+                        assignees(first: 20) {{ nodes {{ id }} }}
+                        labels(last: 20) {{ nodes {{ 
+                                                id
+                                                name
+                                            }}
+                                        }}
+                                    }}
+                                }}
+                            }}";
+
+        private const string QueryGetRepoLabelsFormat = @"query{{
+            repository(owner: ""{0}"", name: ""{1}""){{
+                labels(first: 20){{
+                    nodes{{
+                        id
+                        name
+                    }}
+                }}
+            }}
+        }}";
+
+        private const string MutationAddAssigneePRFormat = @"mutation
+                    {{
+                      addAssigneesToAssignable(input: {{
+                        assignableId: ""{0}"", 
+                        assigneeIds: [""{1}""]}}) {{ clientMutationId }}}}";
+
+        private const string MutationClearLabelsPRFormat = @"mutation{{
+                        clearLabelsFromLabelable(
+                        input:{{labelableId:""{0}""}}) {{clientMutationId}}
+                        }}";
+
+        private const string MutationAddLabelsFormat = @"mutation{{
+                        addLabelsToLabelable(
+                        input:{{labelableId: ""{0}"",labelIds: ""{1}""}}) {{clientMutationId}}
+                        }}";
+
         public static async Task DoWork(ReviewCommandSettings settings, CommonSettings commonSettings, Parameters parameters, Jira jira)
         {
             var prUrl = parameters.Get("PR url: ");
@@ -29,22 +71,11 @@ namespace CcWorks.Workers
             //}
 
             Console.Write("Getting PR... ");
-            var query = @"query {
-                repository(owner:""trilogy-group"", name:""" + repoName + @"""){
-                    pullRequest(number: " + prNumber + @"){
-                        id,
-                        bodyHTML,
-                        assignees(first: 20) { nodes { id } }
-                    }
-                }  
-            }";
-
-            var prInfo = await GithubHelper.Query(query, commonSettings.GithubToken);
+            var prDetails = string.Format(QueryGetPRDetailsFormat, repoName, prNumber);
+            var prInfo = await GithubHelper.Query(prDetails, commonSettings.GithubToken);
             var jPullRequest = prInfo["repository"]["pullRequest"];
             var bodyHtml = jPullRequest["bodyHTML"].Value<string>();
-
             Console.WriteLine("done");
-
             Console.Write("Getting ticket... ");
             var regex = new Regex(@"https://jira\.devfactory\.com/browse/(CC-\d+)");
             var m = regex.Match(bodyHtml);
@@ -56,7 +87,8 @@ namespace CcWorks.Workers
             var issue = await jira.Issues.GetIssueAsync(m.Groups[1].Value);
             Console.WriteLine("done");
 
-            if (!issue.Status.ToString().Equals("In progress", StringComparison.InvariantCultureIgnoreCase))
+            var issueStatus = issue.Status.ToString();
+            if (!issueStatus.Equals("In progress", StringComparison.InvariantCultureIgnoreCase))
             {
                 throw new CcException("Ticket should be in \"In progress\" state");
             }
@@ -82,40 +114,87 @@ namespace CcWorks.Workers
 
                 var currentUserIdJson = await GithubHelper.Query("query {viewer {id}}", commonSettings.GithubToken);
                 var userId = currentUserIdJson["viewer"]["id"].Value<string>();
-
                 var nodes = jPullRequest["assignees"]["nodes"] as JArray ?? new JArray();
-                foreach (var node in nodes)
+
+                if (nodes.Any(node => node["id"].Value<string>() == userId))
                 {
-                    if (node["id"].Value<string>() == userId)
-                    {
-                        Console.WriteLine("already assigned");
-                        return;
-                    }
+                    Console.WriteLine("already assigned");
+                }
+                else
+                {
+                    var assignPrMutation = string.Format(MutationAddAssigneePRFormat, jPullRequest["id"].Value<string>(), userId);
+                    await GithubHelper.Query(assignPrMutation, commonSettings.GithubToken);
+                    Console.WriteLine("done");
+                }
+            }
+
+            if (settings.AssignReviewLabel)
+            {
+                await AssignLabelToPR(commonSettings, repoName, settings.ReviewLabelName, jPullRequest);
+            }
+        }
+
+        private static async Task AssignLabelToPR(CommonSettings commonSettings, string repoName, string reviewLabel, JToken jPullRequest)
+        {
+            Console.Write("Get CRN review label id... ");
+
+            var getRepoLabels = string.Format(QueryGetRepoLabelsFormat, "trilogy-group", repoName);
+            var repoLabels = await GithubHelper.Query(getRepoLabels, commonSettings.GithubToken);
+            var repoLabelsNode = repoLabels["repository"]["labels"]["nodes"] as JArray;
+            var prId = jPullRequest["id"].Value<string>();
+
+            if (repoLabelsNode == null)
+            {
+                Console.Write("No labels found in repo");
+                return;
+            }
+
+            if (!repoLabelsNode.Any(
+                x => x["name"].Value<string>().Equals(reviewLabel, StringComparison.OrdinalIgnoreCase)))
+            {
+                Console.Write("No review label found in repo");
+                return;
+            }
+
+            var crnReviewLabelId = repoLabelsNode.First(
+                    x => x["name"].Value<string>().Equals(reviewLabel, StringComparison.OrdinalIgnoreCase))
+                ["id"]
+                .Value<string>();
+
+            Console.WriteLine("done");
+
+            var labelNodes = jPullRequest["labels"]["nodes"] as JArray ?? new JArray();
+
+            if (labelNodes.Any())
+            {
+                if (labelNodes.Any(x => x["id"].Value<string>().Equals(crnReviewLabelId)))
+                {
+                    Console.Write($@"""{reviewLabel}"" already assigned... ");
+                    Console.WriteLine("done");
+                    return;
                 }
 
-                var prId = jPullRequest["id"].Value<string>();
-                var assignPrMutation = @"mutation
-                    {
-                      addAssigneesToAssignable(input: {
-                        assignableId: """ + prId + @""", 
-                        assigneeIds: [""" + userId + @"""]}) { clientMutationId }}";
-
-                await GithubHelper.Query(assignPrMutation, commonSettings.GithubToken);
-
+                Console.Write("Clear labels... ");
+                var mutationClearLabels = string.Format(MutationClearLabelsPRFormat, prId);
+                await GithubHelper.Query(mutationClearLabels, commonSettings.GithubToken);
                 Console.WriteLine("done");
             }
+
+            Console.Write("Add label... ");
+            var mutationAddLabels = string.Format(MutationAddLabelsFormat, prId, crnReviewLabelId);
+            await GithubHelper.Query(mutationAddLabels, commonSettings.GithubToken);
+            Console.WriteLine("done");
         }
 
         private static void SetCustomField(Issue issue, string name, string value)
         {
-            var field = issue.CustomFields.SingleOrDefault(f => f.Name == name);
-            if (field == null)
+            if (issue.CustomFields.Any(customFieldValue => customFieldValue.Name == name))
             {
-                issue.CustomFields.Add(name, value);
+                issue[name] = value;
             }
             else
             {
-                issue[name] = value;
+                issue.CustomFields.Add(name, value);
             }
         }
     }

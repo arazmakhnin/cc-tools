@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -86,7 +87,7 @@ namespace CcWorks.Workers
                 CopyCustomField(issue, newIssue, field);
             }
             
-            newIssue.Description = GetDescription(fileParts, commonSettings.ProjectsPath, repoSettings.ActualFolderName);
+            newIssue.Description = GetDescription(mainBranch, fileParts, commonSettings.ProjectsPath, repoSettings);
             await newIssue.SaveChangesAsync();
             Console.WriteLine("done");
 
@@ -187,7 +188,7 @@ namespace CcWorks.Workers
             newIssue.CustomFields.Add(fieldName, issue.CustomFields[fieldName]?.Values);
         }
 
-        private static string GetDescription(IReadOnlyCollection<FilePart> fileParts, string projectsPath, string repoFolder)
+        private static string GetDescription(string mainBranch, IReadOnlyCollection<FilePart> fileParts, string projectsPath, RepoSettings repoSettings)
         {
             //            const string template = @"h4. Issue Locations 
             //{noformat} [
@@ -207,7 +208,7 @@ h4. Code
 {code:java}%code%{code}";
 
             var first = fileParts.First();
-            IEnumerable<string> contentLines = File.ReadAllLines(first.FileName);
+            IEnumerable<string> contentLines = GetBranchFileContent(mainBranch, first.FileName, projectsPath, repoSettings).ToList();
             if (!first.Whole)
             {
                 contentLines = contentLines.Skip(first.StartLine - 1).Take(first.EndLine - first.StartLine + 1);
@@ -231,7 +232,7 @@ h4. Code
             var strFileParts = JsonConvert.SerializeObject(fileParts.Select(p => new
             {
                 endLine = p.EndLine,
-                fileName = GetFileName(p.FileName, projectsPath, repoFolder),
+                fileName = GetFileName(p.FileName, projectsPath, repoSettings.ActualFolderName),
                 startColumn = startColumn,
                 startLine = p.StartLine
             }), Formatting.Indented);
@@ -304,6 +305,31 @@ h4. Code
             }
 
             return cutFileName.Substring(repoFolder.Length).TrimStart('/', '\\').Replace('\\', '/');
+        }
+
+        private static IReadOnlyCollection<string> GetBranchFileContent(
+            string branchName,
+            string fileName,
+            string projectsPath,
+            RepoSettings repoSettings)
+        {
+            try
+            {
+                return GitHelper.Exec(
+                    $"git show {branchName}:{fileName}".Replace(
+                            Path.Combine(projectsPath, repoSettings.ActualFolderName) + "\\",
+                            string.Empty)
+                        .Replace("\\", "/"),
+                    repoSettings,
+                    projectsPath);
+            }
+            catch (Exception)
+            {
+                ConsoleHelper.WriteLineColor(
+                    "Error: Unable to fetch mainbranch content. Fetching current file content",
+                    ConsoleColor.Red);
+                return File.ReadAllLines(fileName);
+            }
         }
     }
 
